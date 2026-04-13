@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音乐互动动画系统 · MusicViz</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="scanline"></div>
+
+<!-- ═══ 顶部工具栏 ═══ -->
+<div id="hdr">
+  <div id="logo">MUSICVIZ</div>
+  <button class="hb" onclick="document.getElementById('fi').click()">＋ 添加音乐</button>
+  <input type="file" id="fi" accept="audio/*,.mp3,.wav,.ogg,.aac,.m4a,.flac,.wma,.opus,.webm" multiple style="display:none">
+</div>
+
+<!-- ═══ 主体区域 ═══ -->
+<div id="mid">
+
+  <!-- 左侧播放列表 -->
+  <div id="plp">
+  <div id="plh">
+      <span id="plt">PLAYLIST</span>
+      <span id="plc"></span>
+      <div style="flex:1"></div>
+      <button id="plloop" class="plb" onclick="togLoop()" title="顺序播放">⇢</button>
+      <button id="plclr"  class="plb" onclick="clrPL()"  title="清空列表">🗑</button>
+      <button id="pla"    class="plb" onclick="document.getElementById('fi').click()" title="添加">＋</button>
+    </div>
+    <div id="pll">
+      <div id="ple">🎵 播放列表为空<br>点击「添加音乐」<br>或拖拽到此处</div>
+    </div>
+    <div id="pld">拖拽音频文件到此处</div>
+  </div>
+
+  <!-- Canvas 画布 -->
+  <div id="cw">
+    <canvas id="mc"></canvas>
+    <div id="bf"></div>
+    <div id="do">
+      <div class="di">🎵</div>
+      <div class="dt">音乐互动动画系统</div>
+      <div class="ds">添加音乐开始 · 支持 MP3 WAV OGG</div>
+    </div>
+  </div>
+
+  <!-- 右侧控制面板 -->
+  <div id="rp">
+    <div class="ps">
+      <div class="pst">可视化主题</div>
+      <div class="tg">
+        <button class="tb on" data-theme="bars" onclick="setThm('bars',this)" title="经典频率条形图"><span class="tdot">📊</span>条形频谱</button>
+        <button class="tb" data-theme="circle" onclick="setThm('circle',this)" title="环形频谱扩散"><span class="tdot">🌀</span>圆形频谱</button>
+        <button class="tb" data-theme="waveform" onclick="setThm('waveform',this)" title="实时波形律动"><span class="tdot">〜</span>声波形态</button>
+        <button class="tb" data-theme="particles" onclick="setThm('particles',this)" title="粒子随音乐飞舞"><span class="tdot">✨</span>粒子星云</button>
+        <button class="tb" data-theme="tunnel" onclick="setThm('tunnel',this)" title="沉浸式音频隧道"><span class="tdot">🌌</span>音频隧道</button>
+        <button class="tb" data-theme="galaxy" onclick="setThm('galaxy',this)" title="星系随音乐旋转"><span class="tdot">💫</span>星系旋转</button>
+        <button class="tb tb-auto" data-theme="auto" onclick="setThm('auto',this)" title="自动轮播所有主题 · 按 1-7 快捷切换">
+          <span class="tdot">🔄</span>综合循环
+          <div class="tb-auto-bar"><div id="tb-auto-prog"></div></div>
+        </button>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="pst">色彩方案</div>
+      <div class="cr">
+        <div class="cs on" style="background:linear-gradient(135deg,#00f5ff,#0066ff)" onclick="setPal('cyan',this)"></div>
+        <div class="cs" style="background:linear-gradient(135deg,#ff006e,#ff9500)" onclick="setPal('fire',this)"></div>
+        <div class="cs" style="background:linear-gradient(135deg,#aaff00,#00ff88)" onclick="setPal('neon',this)"></div>
+        <div class="cs" style="background:linear-gradient(135deg,#cc44ff,#ff44aa)" onclick="setPal('purple',this)"></div>
+        <div class="cs" style="background:linear-gradient(135deg,#ffd700,#ff8c00)" onclick="setPal('gold',this)"></div>
+        <div class="cs" style="background:linear-gradient(135deg,#fff,#aac)" onclick="setPal('mono',this)"></div>
+        <div class="cs cs-rainbow" onclick="setPal('rainbow',this)" title="彩虹循环"></div>
+        <div class="cc"><input type="color" value="#00f5ff" oninput="setCustCol(this.value)"></div>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="pst">参数调节</div>
+      <div class="pr" id="renderModeWrap" style="display:none">
+        <div class="pl"><span>渲染模式</span><span id="renderModeLabel">Canvas</span></div>
+        <div class="rhythm-row render-row">
+          <button class="rb render-btn on" id="rbc" onclick="setRenderMode('canvas',this)" title="Canvas 2D">Canvas</button>
+          <button class="rb render-btn" id="rbw" onclick="setRenderMode('webgl',this)" title="WebGL 加速">WebGL</button>
+        </div>
+      </div>
+      <!-- 通用参数（所有主题共享） -->
+      <div class="pr"><div class="pl"><span>灵敏度</span><span id="vs1">1.5</span></div><input type="range" class="sl" min=".5" max="4" step=".1" value="1.5" oninput="setV('sensitivity',this,'vs1')"></div>
+      <div class="pr"><div class="pl"><span>拖影强度</span><span id="vs4">0.18</span></div><input type="range" class="sl" min="0" max=".65" step=".01" value=".18" oninput="setV('blur',this,'vs4',2)"></div>
+      <div class="pr"><div class="pl"><span>节拍震感</span><span id="vs5">1.5</span></div><input type="range" class="sl" min="0" max="3" step=".1" value="1.5" oninput="setV('shake',this,'vs5')"></div>
+      <div class="pr">
+        <div class="pl"><span>律动节拍</span><span id="bpmVal">120 BPM</span></div>
+        <div class="rhythm-row">
+          <input type="number" class="bpm-input" id="bpmInput" min="40" max="300" value="120" onchange="setBPM(this)">
+          <button class="rb rhythm-btn on" onclick="setPat(null,this)" title="关闭律动">关</button>
+          <button class="rb" id="rhythmClickBtn" onclick="togRhythmClick(this)" title="节拍器提示音">提示音</button>
+        </div>
+        <div class="rhythm-row" style="margin-top:3px">
+          <button class="rb rhythm-btn" onclick="setPat('q',this)" title="四分 · 等拍">♩♩♩♩</button>
+          <button class="rb rhythm-btn" onclick="setPat('e',this)" title="八分 · 等拍快">♪♪♪♪</button>
+          <button class="rb rhythm-btn" onclick="setPat('s',this)" title="十六分 · 密集">♬♬♬♬</button>
+        </div>
+        <div class="rhythm-row" style="margin-top:3px">
+          <button class="rb rhythm-btn" onclick="setPat('sw',this)" title="强弱 · 二拍子">强 弱</button>
+          <button class="rb rhythm-btn" onclick="setPat('sww',this)" title="强弱弱 · 三拍子华尔兹">强弱弱</button>
+          <button class="rb rhythm-btn" onclick="setPat('swmw',this)" title="强弱次强弱 · 四拍子">强弱次弱</button>
+        </div>
+        <div class="rhythm-row" style="margin-top:3px">
+          <button class="rb rhythm-btn" onclick="setPat('lss',this)" title="长短短 · 附点节奏">长短短</button>
+          <button class="rb rhythm-btn" onclick="setPat('ssl',this)" title="短短长 · 切分">短短长</button>
+          <button class="rb rhythm-btn" onclick="setPat('lssl',this)" title="长短短长 · 摇摆">长短短长</button>
+          <button class="rb rhythm-btn" onclick="setPat('trip',this)" title="三连音">三连音</button>
+        </div>
+      </div>
+
+      <!-- 主题专属参数（JS 控制显隐） -->
+      <div id="tp-bars" class="tp-block">
+        <div class="tp-label">— 条形频谱 —</div>
+        <div class="pr"><div class="pl"><span>条形数量</span><span id="vtp1">128</span></div><input type="range" class="sl" min="32" max="256" step="8" value="128" oninput="setV('themeParams.barsCount',this,'vtp1',0)"></div>
+        <div class="pr">
+          <div class="pl"><span>频率范围</span><span id="vtpfr">0 – 16000 Hz</span></div>
+          <div class="rng2" id="freqRange">
+            <input type="range" class="rng2-lo" min="0" max="20000" step="100" value="0"     oninput="setFreqRange()">
+            <input type="range" class="rng2-hi" min="0" max="20000" step="100" value="16000" oninput="setFreqRange()">
+          </div>
+        </div>
+      </div>
+      <div id="tp-circle" class="tp-block" style="display:none">
+        <div class="tp-label">— 圆形频谱 —</div>
+        <div class="pr"><div class="pl"><span>辐射条数</span><span id="vtp2">256</span></div><input type="range" class="sl" min="64" max="512" step="16" value="256" oninput="setV('themeParams.circleN',this,'vtp2',0)"></div>
+      </div>
+      <div id="tp-waveform" class="tp-block" style="display:none">
+        <div class="tp-label">— 声波形态 —</div>
+        <div class="pr"><div class="pl"><span>平滑度</span><span id="vtp3">0.12</span></div><input type="range" class="sl" min="0.02" max="0.5" step="0.01" value="0.12" oninput="setV('themeParams.waveSmooth',this,'vtp3',2)"></div>
+      </div>
+      <div id="tp-particles" class="tp-block" style="display:none">
+        <div class="tp-label">— 粒子星云 —</div>
+        <div class="pr"><div class="pl"><span>粒子数量</span><span id="vtp4">400</span></div><input type="range" class="sl" min="80" max="900" step="10" value="400" oninput="setV('themeParams.particleCount',this,'vtp4',0)"></div>
+        <div class="pr"><div class="pl"><span>动画速度</span><span id="vtp4s">1.0</span></div><input type="range" class="sl" min=".2" max="3" step=".1" value="1.0" oninput="setV('speed',this,'vtp4s')"></div>
+      </div>
+      <div id="tp-tunnel" class="tp-block" style="display:none">
+        <div class="tp-label">— 音频隧道 —</div>
+        <div class="pr"><div class="pl"><span>环数</span><span id="vtp5">26</span></div><input type="range" class="sl" min="8" max="48" step="2" value="26" oninput="setV('themeParams.tunnelRings',this,'vtp5',0)"></div>
+        <div class="pr"><div class="pl"><span>旋转速度</span><span id="vtp5s">1.0</span></div><input type="range" class="sl" min=".2" max="3" step=".1" value="1.0" oninput="setV('speed',this,'vtp5s')"></div>
+      </div>
+      <div id="tp-galaxy" class="tp-block" style="display:none">
+        <div class="tp-label">— 星系旋转 —</div>
+        <div class="pr"><div class="pl"><span>旋臂数</span><span id="vtp6">5</span></div><input type="range" class="sl" min="2" max="9" step="1" value="5" oninput="setV('themeParams.galaxyArms',this,'vtp6',0)"></div>
+        <div class="pr"><div class="pl"><span>旋转速度</span><span id="vtp6s">1.0</span></div><input type="range" class="sl" min=".2" max="3" step=".1" value="1.0" oninput="setV('speed',this,'vtp6s')"></div>
+      </div>
+      <div id="tp-auto" class="tp-block" style="display:none">
+        <div class="tp-label">— 综合循环 —</div>
+        <div class="pr"><div class="pl"><span>动画速度</span><span id="vtpa">1.0</span></div><input type="range" class="sl" min=".2" max="3" step=".1" value="1.0" oninput="setV('speed',this,'vtpa')"></div>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="pst">背景特效</div>
+      <div class="fg">
+        <button class="fb" onclick="togFx('rain',this)"><span class="fi">🌧</span>雨</button>
+        <button class="fb" onclick="togFx('snow',this)"><span class="fi">❄️</span>雪</button>
+        <button class="fb" onclick="togFx('fog',this)"><span class="fi">🌫</span>雾</button>
+        <button class="fb on" onclick="togFx('stars',this)"><span class="fi">⭐</span>星空</button>
+        <button class="fb" onclick="togFx('lightning',this)"><span class="fi">⚡</span>闪电</button>
+        <button class="fb" onclick="togFx('aurora',this)"><span class="fi">🌌</span>极光</button>
+      </div>
+      <div id="fxp-stars" class="fxp-block">
+        <div class="pr" style="margin-top:7px"><div class="pl"><span>星星密度</span><span id="vfx1">420</span></div><input type="range" class="sl" min="80" max="900" step="20" value="420" oninput="setV('fxParams.starsDensity',this,'vfx1',0)"></div>
+      </div>
+      <div id="fxp-rain" class="fxp-block" style="display:none">
+        <div class="pr" style="margin-top:7px"><div class="pl"><span>雨速</span><span id="vfx2">1.0</span></div><input type="range" class="sl" min="0.2" max="3" step="0.1" value="1.0" oninput="setV('fxParams.rainSpeed',this,'vfx2')"></div>
+      </div>
+      <div id="fxp-snow" class="fxp-block" style="display:none">
+        <div class="pr" style="margin-top:7px"><div class="pl"><span>雪花密度</span><span id="vfx3">170</span></div><input type="range" class="sl" min="30" max="400" step="10" value="170" oninput="setV('fxParams.snowDensity',this,'vfx3',0)"></div>
+      </div>
+      <div id="fxp-fog" class="fxp-block" style="display:none">
+        <div class="pr" style="margin-top:7px"><div class="pl"><span>雾浓度</span><span id="vfx4">0.5</span></div><input type="range" class="sl" min="0.1" max="1" step="0.05" value="0.5" oninput="setV('fxParams.fogDensity',this,'vfx4')"></div>
+      </div>
+      <div id="fxp-lightning" class="fxp-block" style="display:none">
+        <div class="pr" style="margin-top:7px"><div class="pl"><span>闪电频率</span><span id="vfx5">0.5</span></div><input type="range" class="sl" min="0.1" max="1" step="0.05" value="0.5" oninput="setV('fxParams.lightningFreq',this,'vfx5')"></div>
+      </div>
+      <div id="fxp-aurora" class="fxp-block" style="display:none">
+        <div class="pr" style="margin-top:7px"><div class="pl"><span>极光强度</span><span id="vfx6">0.5</span></div><input type="range" class="sl" min="0.1" max="1" step="0.05" value="0.5" oninput="setV('fxParams.auroraIntensity',this,'vfx6')"></div>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="pst">图片互动</div>
+      <div style="display:flex;gap:5px;margin-bottom:7px">
+        <button class="hb" style="flex:1;font-size:.58rem" onclick="document.getElementById('ii').click()">🖼 添加图片</button>
+        <button class="hb" style="flex:1;font-size:.58rem" onclick="document.getElementById('vi2').click()">🎬 导入视频</button>
+        <button class="hb" style="flex:1;font-size:.58rem" id="vidBgBtn" onclick="document.getElementById('bgvi').click()">📺 视频背景</button>
+      </div>
+      <input type="file" id="ii" accept="image/*" multiple style="display:none">
+      <input type="file" id="vi2" accept="video/*" style="display:none">
+      <input type="file" id="bgvi" accept="video/*" style="display:none">
+      <div id="igal" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px;min-height:0"></div>
+      <div id="ivid" class="igvid" style="display:none;align-items:center;gap:5px;margin-bottom:6px;font-size:.56rem"></div>
+      <div id="ibgvid" class="igvid" style="display:none;align-items:center;gap:5px;margin-bottom:6px;font-size:.56rem"></div>
+      <div class="fg" style="margin-bottom:7px">
+        <button class="fb" id="igb" onclick="setIFx('gray',this)"><span class="fi">⬛</span>灰度</button>
+        <button class="fb" id="ihb" onclick="setIFx('halftone',this)"><span class="fi">⚙️</span>半调</button>
+        <button class="fb on" id="ilb" onclick="setIFx('glow',this)"><span class="fi">💡</span>光效</button>
+      </div>
+      <div class="fg" style="margin-bottom:7px;grid-template-columns:1fr 1fr 1fr">
+        <button class="fb on" id="isc" onclick="setISh('circle',this)"><span class="fi">⭕</span>圆形</button>
+        <button class="fb" id="isr" onclick="setISh('rect',this)"><span class="fi">🟦</span>矩形</button>
+        <button class="fb" id="isn" onclick="setISh('none',this)"><span class="fi">🚫</span>无图片</button>
+      </div>
+      <div class="pr"><div class="pl"><span>图片大小</span><span id="vs7">0.22</span></div><input type="range" class="sl" min="0.08" max="0.55" step="0.01" value="0.22" oninput="setV('imgSize',this,'vs7',2)"></div>
+      <div class="pr"><div class="pl"><span>律动强度</span><span id="vs6">.60</span></div><input type="range" class="sl" min="0" max="1.5" step=".05" value=".6" oninput="setV('imgBeat',this,'vs6')"></div>
+      <button class="hb" style="width:100%;margin-top:3px;font-size:.58rem" onclick="resetImgPos()">↺ 重置位置</button>
+    </div>
+    <div class="ps">
+      <div class="pst">实时频谱</div>
+      <canvas id="ms" width="262" height="44"></canvas>
+      <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:.49rem;color:var(--muted)">
+        <span>低频</span><span>中频</span><span>高频</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 底部播放器栏 ═══ -->
+<div id="bar">
+  <div id="np">
+    <div id="ns">未加载音乐</div>
+    <div id="nb">MusicViz · 音乐可视化</div>
+  </div>
+  <div id="sz">
+    <button class="tp" id="pvb" onclick="prevTk()" disabled>⏮</button>
+    <button id="pb" onclick="togPlay()" disabled>▶</button>
+    <button class="tp" id="nxb" onclick="nextTk()" disabled>⏭</button>
+    <div id="pw">
+      <span class="tt" id="ct">0:00</span>
+      <input type="range" id="sk" min="0" max="100" value="0" step=".1">
+      <span class="tt" id="dt">0:00</span>
+    </div>
+  </div>
+  <div id="vw">
+    <span id="vi" onclick="togMute()">🔊</span>
+    <input type="range" id="vs" min="0" max="1" step=".01" value=".8" style="--vp:80%" oninput="setVol(this.value)">
+  </div>
+</div>
+
+<!-- ═══ JS 模块（按依赖顺序加载）═══ -->
+<script src="js/state.js"></script>      <!-- 全局状态、调色板、工具函数 -->
+<script src="js/audio.js"></script>      <!-- WebAudio、播放控制、节拍检测 -->
+<script src="js/background.js"></script> <!-- 背景特效：星空/雨/雪/雾/闪电/极光 -->
+<script src="js/webgl.js"></script>      <!-- WebGL 粒子扩展（可选） -->
+<script src="js/visualizer.js"></script> <!-- 六种可视化主题 + 图片互动 -->
+<script src="js/playlist.js"></script>   <!-- 播放列表 UI + 拖拽 + 图片导入 -->
+<script src="js/main.js"></script>       <!-- 渲染主循环 + UI 回调 + 初始化 -->
+
+</body>
+</html>
