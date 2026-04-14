@@ -317,7 +317,13 @@ function togMute() {
 // ── 更新播放器按钮状态 ──
 function updUI() {
   const p = document.getElementById('pb');
-  p.textContent = playing ? '⏸' : '▶';
+  const icon = document.getElementById('pbIcon');
+  const ver = window.__assetVersion ? `?v=${window.__assetVersion}` : '';
+  if (icon) {
+    icon.src = playing ? `assets/icons/暂停.svg${ver}` : `assets/icons/播放.svg${ver}`;
+    icon.alt = playing ? '暂停' : '播放';
+  }
+  p.setAttribute('aria-label', playing ? '暂停' : '播放');
   p.disabled = plist.length === 0;
   document.getElementById('pvb').disabled = plist.length === 0;
   document.getElementById('nxb').disabled = plist.length === 0;

@@ -16,13 +16,22 @@
 
 let _imgDrag = null;
 
+function getStageCenter() {
+  const portraitUI = document.body.classList.contains('portrait-ui');
+  return {
+    x: CV.width / 2,
+    y: CV.height * (portraitUI ? 0.43 : 0.5),
+  };
+}
+
 CV.addEventListener('pointerdown', e => {
   if (!imgOff && !vidActive) return;
   const rect = CV.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
-  const cx = CV.width  / 2 + S.imgX;
-  const cy = CV.height / 2 + S.imgY;
+  const center = getStageCenter();
+  const cx = center.x + S.imgX;
+  const cy = center.y + S.imgY;
   const half = Math.min(CV.width, CV.height) * S.imgSize * 0.65;
   if (Math.abs(mx - cx) < half && Math.abs(my - cy) < half) {
     _imgDrag = { sx: mx, sy: my, ox: S.imgX, oy: S.imgY };
@@ -51,10 +60,19 @@ document.addEventListener('pointerup', () => {
 
 function resize() {
   const cw  = document.getElementById('cw');
+  const portraitUI = window.innerHeight > window.innerWidth && window.innerWidth <= 900;
+  document.body.classList.toggle('portrait-ui', portraitUI);
   CV.width  = cw.clientWidth;
   CV.height = cw.clientHeight;
   resizeGL(CV.width, CV.height);
   initStars(); // 背景粒子跟随尺寸重建
+  if (portraitUI) document.body.classList.add('portrait-quick-collapsed');
+  else {
+    closePortraitPanels();
+    document.body.classList.remove('portrait-quick-collapsed');
+  }
+  _syncPortraitLayout();
+  _syncPortraitUI();
 }
 window.addEventListener('resize', resize);
 
@@ -340,10 +358,11 @@ function render() {
   const _beating = totalScale > 0.002;
   if (_beating) {
     const sc = 1 + totalScale;
+    const center = getStageCenter();
     ctx.save();
-    ctx.translate(CV.width / 2, CV.height / 2);
+    ctx.translate(center.x, center.y);
     ctx.scale(sc, sc);
-    ctx.translate(-CV.width / 2, -CV.height / 2);
+    ctx.translate(-center.x, -center.y);
   }
 
   // ── 背景特效层 ──
@@ -463,6 +482,7 @@ function setFreqRange() {
 function setThm(n, el) {
   S.theme = n;
   document.querySelectorAll('.tb').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll(`.tb[data-theme="${n}"]`).forEach(b => b.classList.add('on'));
   if (el) el.classList.add('on');
   initParts();
   if (n !== 'auto') _clearAutoUI();
@@ -480,6 +500,23 @@ function setPal(n, el) {
   S.palette = n;
   document.querySelectorAll('.cs').forEach(b => b.classList.remove('on'));
   el.classList.add('on');
+  saveSettings();
+}
+
+function applyBgTheme() {
+  document.body.dataset.bgTheme = S.bgTheme === 'light' ? 'light' : 'dark';
+  document.querySelectorAll('.bg-theme-btn').forEach(btn => {
+    btn.classList.toggle('on', btn.dataset.bgTheme === S.bgTheme);
+  });
+}
+
+function setBgTheme(n, el) {
+  S.bgTheme = n === 'light' ? 'light' : 'dark';
+  applyBgTheme();
+  if (el) {
+    document.querySelectorAll('.bg-theme-btn').forEach(btn => btn.classList.remove('on'));
+    el.classList.add('on');
+  }
   saveSettings();
 }
 
@@ -560,7 +597,8 @@ function togRhythmClick(el) {
 /** 切换背景特效开关 */
 function togFx(n, el) {
   S.fx[n] = !S.fx[n];
-  el.classList.toggle('on', S.fx[n]);
+  document.querySelectorAll(`.fb[data-fx="${n}"]`).forEach(btn => btn.classList.toggle('on', S.fx[n]));
+  if (el && !el.dataset.fx) el.classList.toggle('on', S.fx[n]);
   const blk = document.getElementById('fxp-' + n);
   if (blk) blk.style.display = S.fx[n] ? '' : 'none';
   saveSettings();
@@ -628,6 +666,7 @@ function _syncRenderModeUI() {
 }
 
 function _syncUIFromState() {
+  applyBgTheme();
   document.querySelectorAll('.tb').forEach(b => b.classList.toggle('on', b.dataset.theme === S.theme));
   document.querySelectorAll('.cs').forEach(b => b.classList.remove('on'));
   if (S.palette !== 'custom') {
@@ -685,9 +724,9 @@ function _syncUIFromState() {
   }
 
   document.querySelectorAll('.fb').forEach(btn => {
-    const m = (btn.getAttribute('onclick') || '').match(/togFx\('([^']+)'/);
-    if (!m) return;
-    btn.classList.toggle('on', !!S.fx[m[1]]);
+    const name = btn.dataset.fx || ((btn.getAttribute('onclick') || '').match(/togFx\('([^']+)'/) || [])[1];
+    if (!name) return;
+    btn.classList.toggle('on', !!S.fx[name]);
   });
   ['stars','rain','snow','fog','lightning','aurora'].forEach(name => {
     const blk = document.getElementById('fxp-' + name);
@@ -700,6 +739,58 @@ function _syncUIFromState() {
   _syncLoopBtn();
   _syncRenderModeUI();
 }
+
+function _isPortraitUI() {
+  return document.body.classList.contains('portrait-ui');
+}
+
+function _syncPortraitUI() {
+  const btn = document.getElementById('portraitHdrSettingsBtn');
+  if (!btn) return;
+  const open = document.body.classList.contains('portrait-settings-open');
+  btn.textContent = open ? '收起' : '参数';
+  btn.classList.toggle('on', open);
+}
+
+function _syncPortraitLayout() {
+  const bar = document.getElementById('bar');
+  if (!bar) return;
+  const h = Math.ceil(bar.getBoundingClientRect().height || 0);
+  document.documentElement.style.setProperty('--bar-h', `${h}px`);
+}
+
+function closePortraitPanels() {
+  document.body.classList.remove('portrait-playlist-open', 'portrait-settings-open');
+  _syncPortraitLayout();
+  _syncPortraitUI();
+}
+
+function togglePortraitPanel(name) {
+  if (!_isPortraitUI()) return;
+  const cls = name === 'playlist' ? 'portrait-playlist-open' : 'portrait-settings-open';
+  const other = name === 'playlist' ? 'portrait-settings-open' : 'portrait-playlist-open';
+  const willOpen = !document.body.classList.contains(cls);
+  document.body.classList.remove(other);
+  document.body.classList.toggle(cls, willOpen);
+  _syncPortraitLayout();
+  _syncPortraitUI();
+}
+
+function togglePortraitQuickBar() {
+  if (!_isPortraitUI()) return;
+  document.body.classList.toggle('portrait-quick-collapsed');
+  _syncPortraitLayout();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!document.body.classList.contains('portrait-playlist-open') && !document.body.classList.contains('portrait-settings-open')) return;
+  closePortraitPanels();
+});
+
+window.closePortraitPanels = closePortraitPanels;
+window.togglePortraitPanel = togglePortraitPanel;
+window.togglePortraitQuickBar = togglePortraitQuickBar;
 
 // ══════════════════════════════════════════
 // 页面初始化

@@ -75,6 +75,7 @@ const S = {
   theme:        'bars',
   renderMode:   'canvas',   // 'canvas' | 'webgl'
   palette:      'cyan',
+  bgTheme:      'dark',     // 'dark' | 'light'
   sensitivity:  1.5,
   speed:        1,
   blur:         0.18,
@@ -114,7 +115,7 @@ const S = {
     barsFreqLow:    0,      // 条形频率下限 Hz
     barsFreqHigh:   16000,  // 条形频率上限 Hz
     circleN:        256,    // 圆形频谱条数
-    waveSmooth:     0.12,   // 声波平滑度
+    waveSmooth:     0.08,   // 声波波速
     particleCount:  400,    // 粒子数量（原 S.particleCount）
     tunnelRings:    26,     // 隧道环数
     galaxyArms:     5,      // 星系旋臂数
@@ -131,6 +132,7 @@ function _cloneSettingsForSave() {
     theme: S.theme,
     renderMode: S.renderMode,
     palette: S.palette,
+    bgTheme: S.bgTheme,
     sensitivity: S.sensitivity,
     speed: S.speed,
     blur: S.blur,
@@ -207,18 +209,22 @@ function hslHex(h, s, l) {
 
 /** 返回当前调色板（自定义色时三色相同） */
 function gp() {
+  const bgByTheme = darkBg => {
+    return darkBg;
+  };
   if (S.palette === 'custom')
-    return { a: S.customColor, b: S.customColor, c: S.customColor, bg: '#050810' };
+    return { a: S.customColor, b: S.customColor, c: S.customColor, bg: bgByTheme('#050810') };
   if (S.palette === 'rainbow') {
     const h = (tk * 0.4) % 360;
     return {
       a: hslHex(h, 100, 62),
       b: hslHex((h + 120) % 360, 100, 62),
       c: hslHex((h + 240) % 360, 100, 62),
-      bg: '#050810',
+      bg: bgByTheme('#050810'),
     };
   }
-  return PAL[S.palette] || PAL.cyan;
+  const pal = PAL[S.palette] || PAL.cyan;
+  return { ...pal, bg: bgByTheme(pal.bg) };
 }
 
 /** 颜色工具：hex → "r,g,b" */

@@ -42,12 +42,20 @@ function mkP() {
   };
 }
 
+function _portraitViz() {
+  return CV.height > CV.width * 1.08;
+}
+
 // ══════════════════════════════════════════
 // 1. 条形频谱
 // ══════════════════════════════════════════
 
 function dBars(freq) {
-  const p = gp(), N = S.themeParams.barsCount || 128, bw = CV.width / N, mH = CV.height * 0.74;
+  const p = gp(), portrait = _portraitViz();
+  const N = S.themeParams.barsCount || 128;
+  const bw = CV.width / N;
+  const baseY = portrait ? CV.height * 0.88 : CV.height;
+  const mH = CV.height * (portrait ? 0.56 : 0.74);
   // 频率范围映射：Hz → freq 数组下标（每 bin ≈ sampleRate/fftSize Hz）
   const binHz   = (aCtx ? aCtx.sampleRate : 44100) / (freq.length * 2);
   const binLow  = Math.max(0,              Math.floor((S.themeParams.barsFreqLow  || 0)     / binHz));
@@ -58,11 +66,11 @@ function dBars(freq) {
     const v   = freq[binLow + Math.floor(i * binSpan / N)] / 255;
     const h   = v * mH * S.sensitivity;
     const x   = i * bw;
-    const y   = CV.height - h;
+    const y   = baseY - h;
     const col = lc(p.a, p.b, i / N);
     ctx.shadowBlur  = 10 + v * 20;
     ctx.shadowColor = col;
-    const g = ctx.createLinearGradient(x, y, x, CV.height);
+    const g = ctx.createLinearGradient(x, y, x, baseY);
     g.addColorStop(0, col);
     g.addColorStop(1, p.b + '22');
     ctx.fillStyle = g;
@@ -81,7 +89,7 @@ function dBars(freq) {
     const h = v * mH * S.sensitivity;
     const x = i * bw;
     ctx.fillStyle = lc(p.a, p.b, i / N);
-    ctx.fillRect(x + 0.5, CV.height - h, bw - 1.5, h);
+    ctx.fillRect(x + 0.5, baseY - h, bw - 1.5, h);
   }
   ctx.globalAlpha = 1;
   ctx.restore();
@@ -93,11 +101,14 @@ function dBars(freq) {
 
 function dCircle(freq) {
   const p     = gp();
-  const cx    = CV.width / 2, cy = CV.height / 2;
+  const portrait = _portraitViz();
+  const cx    = CV.width / 2;
+  const cy    = CV.height * (portrait ? 0.44 : 0.5);
   const N     = S.themeParams.circleN || 256;
   const bassN = (aFeat.bass || 0) / 255;
-  const baseR = Math.min(CV.width, CV.height) * (0.18 + bassN * 0.035);
-  const maxR  = Math.min(CV.width, CV.height) * 0.3 * S.sensitivity;
+  const minSide = Math.min(CV.width, CV.height);
+  const baseR = minSide * ((portrait ? 0.145 : 0.18) + bassN * (portrait ? 0.028 : 0.035));
+  const maxR  = minSide * (portrait ? 0.23 : 0.3) * S.sensitivity;
 
   // 中心辉光
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseR * 1.3);
@@ -309,7 +320,8 @@ function getGlowStamp(col, r) {
 
 function dParts(en) {
   const p    = gp();
-  const cx   = CV.width / 2, cy = CV.height / 2;
+  const portrait = _portraitViz();
+  const cx   = CV.width / 2, cy = CV.height * (portrait ? 0.43 : 0.5);
   const norm = en / 255;
   const hi   = (aFeat.high || 0) / 255;
   const bass = (aFeat.bass || 0) / 255;
@@ -318,7 +330,7 @@ function dParts(en) {
   while (parts.length > S.themeParams.particleCount) parts.pop();
 
   // 单层星云渐变（背景氛围）
-  const nR = Math.min(CV.width, CV.height) * 0.72 * (1 + norm * S.sensitivity * 0.28 + hi * 0.12) * beatPulse;
+  const nR = Math.min(CV.width, CV.height) * (portrait ? 0.56 : 0.72) * (1 + norm * S.sensitivity * 0.28 + hi * 0.12) * beatPulse;
   const ng = ctx.createRadialGradient(cx, cy, nR * 0.04, cx, cy, nR);
   ng.addColorStop(0,    `rgba(${hr(p.a)},${0.07 + norm * 0.11})`);
   ng.addColorStop(0.55, `rgba(${hr(p.b)},${0.03 + norm * 0.05})`);
@@ -342,10 +354,10 @@ function dParts(en) {
     const fv = pt._fv;
 
     pt.angle += (0.0033 + fv * 0.014 + hi * 0.0045) * S.speed * (isBeat ? beatPulse * 0.5 + 0.55 : 0.78);
-    const dynR = pt.orbitR * (1 + fv * S.sensitivity * 0.45 + bass * 0.18) * (isBeat ? beatPulse * 0.2 + 0.8 : 1);
-    const wob  = Math.sin(pt.angle * 3 + tk * 0.018) * 10 * fv;
+    const dynR = pt.orbitR * (portrait ? 0.78 : 1) * (1 + fv * S.sensitivity * 0.45 + bass * 0.18) * (isBeat ? beatPulse * 0.2 + 0.8 : 1);
+    const wob  = Math.sin(pt.angle * 3 + tk * 0.018) * (portrait ? 7 : 10) * fv;
     pt.x = cx + Math.cos(pt.angle) * (dynR + wob);
-    pt.y = cy + Math.sin(pt.angle) * (dynR + wob) * 0.68;
+    pt.y = cy + Math.sin(pt.angle) * (dynR + wob) * (portrait ? 0.92 : 0.68);
 
     pt.trail.push({ x: pt.x, y: pt.y });
     if (pt.trail.length > TRAIL) pt.trail.shift();
@@ -409,7 +421,7 @@ function dParts(en) {
 
   // 节拍冲击波环（循环外唯一一次 shadowBlur）
   if (isBeat) {
-    const rR = Math.min(CV.width, CV.height) * 0.11 * beatPulse;
+    const rR = Math.min(CV.width, CV.height) * (portrait ? 0.085 : 0.11) * beatPulse;
     ctx.shadowBlur  = 45;
     ctx.shadowColor = p.a;
     ctx.strokeStyle = p.a;
@@ -428,14 +440,16 @@ function dParts(en) {
 // ══════════════════════════════════════════
 
 function dTunnel(freq) {
-  const p = gp(), cx = CV.width / 2, cy = CV.height / 2;
+  const p = gp(), portrait = _portraitViz();
+  const cx = CV.width / 2, cy = CV.height * (portrait ? 0.44 : 0.5);
+  const maxTunnelR = Math.min(CV.width, CV.height) * (portrait ? 0.46 : 0.55);
 
   // 同心圆环
   const rings = S.themeParams.tunnelRings || 26;
   for (let i = rings; i >= 1; i--) {
     const fi  = Math.floor((i / rings) * (freq.length * 0.5));
     const v   = freq[fi] / 255;
-    const r   = (i / rings) * Math.min(CV.width, CV.height) * 0.55 + v * 55 * S.sensitivity;
+    const r   = (i / rings) * maxTunnelR + v * (portrait ? 34 : 55) * S.sensitivity;
     const col = lc(p.a, p.b, i / rings);
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -459,7 +473,8 @@ function dTunnel(freq) {
     ctx.globalAlpha = v * 0.5;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + Math.cos(angle) * CV.width, cy + Math.sin(angle) * CV.width);
+    const rayLen = portrait ? CV.height * 0.82 : CV.width;
+    ctx.lineTo(cx + Math.cos(angle) * rayLen, cy + Math.sin(angle) * rayLen);
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
@@ -471,7 +486,8 @@ function dTunnel(freq) {
 
 function dGalaxy(freq) {
   const p    = gp();
-  const cx   = CV.width / 2, cy = CV.height / 2;
+  const portrait = _portraitViz();
+  const cx   = CV.width / 2, cy = CV.height * (portrait ? 0.43 : 0.5);
   const time = tk * 0.0014 * S.speed;
   const norm = freq.reduce((a, b) => a + b, 0) / freq.length / 255;
   const midN = (aFeat.mid || 0) / 255;
@@ -480,7 +496,7 @@ function dGalaxy(freq) {
 
   // 多层星云
   [90, 160, 240, 330].forEach((base, ni) => {
-    const nR  = base * (1 + norm * S.sensitivity * 0.5) * (isBeat ? beatPulse * 0.3 + 0.7 : 1);
+    const nR  = base * (portrait ? 0.8 : 1) * (1 + norm * S.sensitivity * 0.5) * (isBeat ? beatPulse * 0.3 + 0.7 : 1);
     const ng  = ctx.createRadialGradient(cx, cy, nR * 0.1, cx, cy, nR);
     const nc  = [p.a, p.b, p.c, p.a][ni];
     ng.addColorStop(0,   `rgba(${hr(nc)},${0.05 + norm * 0.1})`);
@@ -499,12 +515,12 @@ function dGalaxy(freq) {
       const t     = j / pts;
       const fi    = Math.floor(t * freq.length * 0.72);
       const fv    = freq[fi] / 255;
-      const baseR = t * Math.min(CV.width, CV.height) * 0.46;
+      const baseR = t * Math.min(CV.width, CV.height) * (portrait ? 0.34 : 0.46);
       const audioR = baseR * (1 + fv * S.sensitivity * 0.5);
       const beatR  = isBeat ? audioR * (beatPulse - 1) * 0.4 * t : 0;
       const spin  = t * Math.PI * 2.6 + armA + time;
       const x     = cx + Math.cos(spin) * (audioR + beatR);
-      const y     = cy + Math.sin(spin) * (audioR + beatR) * 0.72;
+      const y     = cy + Math.sin(spin) * (audioR + beatR) * (portrait ? 1.05 : 0.72);
       const sz    = (1 - t * 0.65) * 3.5 + fv * 7 * S.sensitivity + hiN * 2.2 + (isBeat ? beatPulse * 2.5 : 0);
       const col   = lc(p.a, p.b, (arm / arms + t * 0.4) % 1);
       const alpha = (1 - t * 0.8) * (0.12 + fv * 0.88 + midN * 0.18) * (isBeat ? Math.min(beatPulse, 2.5) * 0.65 : 1);
@@ -532,7 +548,7 @@ function dGalaxy(freq) {
   ctx.globalAlpha = 1;
 
   // 炽热核心
-  const cR = 55 * (1 + norm * S.sensitivity * 0.7) * (isBeat ? beatPulse * 0.45 + 0.55 : 1);
+  const cR = 55 * (portrait ? 0.82 : 1) * (1 + norm * S.sensitivity * 0.7) * (isBeat ? beatPulse * 0.45 + 0.55 : 1);
   const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, cR);
   cg.addColorStop(0,   '#ffffff');
   cg.addColorStop(0.12, p.a + 'ff');
@@ -611,12 +627,13 @@ function dMini(freq) {
 function dImg(en) {
   if (!imgOff || S.imgShape === 'none') return;
   const p    = gp();
+  const portrait = _portraitViz();
   const cx   = CV.width  / 2 + S.imgX;
-  const cy   = CV.height / 2 + S.imgY;
+  const cy   = CV.height * (portrait ? 0.43 : 0.5) + S.imgY;
   const norm = en / 255;
 
   const beatS = isBeat ? 1 + (beatPulse - 1) * S.imgBeat * 0.18 : 1;
-  const base  = Math.min(CV.width, CV.height) * S.imgSize * beatS;
+  const base  = Math.min(CV.width, CV.height) * S.imgSize * beatS * (portrait ? 0.88 : 1);
   const W = base, H = base;
 
   ctx.save();
@@ -844,10 +861,12 @@ function dAuto(freq, en) {
   // 主题名称标签（淡入后短暂显示）
   if (_autoTk >= _AUTO_FADE && _autoTk <= _AUTO_FADE + 120) {
     const p  = gp();
+    const portrait = _portraitViz();
     const t  = _autoTk - _AUTO_FADE;
     const la = t < 30 ? t / 30 : t > 90 ? 1 - (t - 90) / 30 : 1;
     if (la > 0) {
       const fs = Math.max(14, Math.round(CV.height * 0.03));
+      const labelY = CV.height * (portrait ? 0.84 : 0.91);
       ctx.save();
       ctx.globalAlpha = la * 0.9;
       ctx.font        = `bold ${fs}px 'Noto Sans SC', sans-serif`;
@@ -855,12 +874,12 @@ function dAuto(freq, en) {
       ctx.shadowBlur  = 24;
       ctx.shadowColor = p.a;
       ctx.fillStyle   = p.a;
-      ctx.fillText(_autoNames[_autoIdx], CV.width / 2, CV.height * 0.91);
+      ctx.fillText(_autoNames[_autoIdx], CV.width / 2, labelY);
       // 下划线装饰
       const tw = ctx.measureText(_autoNames[_autoIdx]).width;
       ctx.globalAlpha = la * 0.5;
       ctx.fillStyle   = p.c;
-      ctx.fillRect(CV.width / 2 - tw / 2, CV.height * 0.91 + fs * 0.3, tw, 1.5);
+      ctx.fillRect(CV.width / 2 - tw / 2, labelY + fs * 0.3, tw, 1.5);
       ctx.restore();
     }
   }

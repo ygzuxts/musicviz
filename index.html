@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>音乐互动动画系统 · MusicViz</title>
-<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -14,6 +16,7 @@
 <div id="hdr">
   <div id="logo">MUSICVIZ</div>
   <button class="hb" onclick="document.getElementById('fi').click()">＋ 添加音乐</button>
+  <button class="hb portrait-only" id="portraitHdrSettingsBtn" onclick="togglePortraitPanel('settings')" title="展开或收起完整参数">参数</button>
   <input type="file" id="fi" accept="audio/*,.mp3,.wav,.ogg,.aac,.m4a,.flac,.wma,.opus,.webm" multiple style="display:none">
 </div>
 
@@ -26,14 +29,15 @@
       <span id="plt">PLAYLIST</span>
       <span id="plc"></span>
       <div style="flex:1"></div>
+      <button class="plb portrait-only" onclick="closePortraitPanels()" title="关闭">✕</button>
       <button id="plloop" class="plb" onclick="togLoop()" title="顺序播放">⇢</button>
       <button id="plclr"  class="plb" onclick="clrPL()"  title="清空列表">🗑</button>
       <button id="pla"    class="plb" onclick="document.getElementById('fi').click()" title="添加">＋</button>
     </div>
     <div id="pll">
-      <div id="ple">🎵 播放列表为空<br>点击「添加音乐」<br>或拖拽到此处</div>
+      <div id="ple">🎵 暂无音频文件<br>点击「添加音乐」<br>或将音频拖拽到这里</div>
     </div>
-    <div id="pld">拖拽音频文件到此处</div>
+    <div id="pld">将音频文件拖拽到这里</div>
   </div>
 
   <!-- Canvas 画布 -->
@@ -42,13 +46,16 @@
     <div id="bf"></div>
     <div id="do">
       <div class="di">🎵</div>
-      <div class="dt">音乐互动动画系统</div>
-      <div class="ds">添加音乐开始 · 支持 MP3 WAV OGG</div>
+      <div class="dt">音乐可视化工作台</div>
+      <div class="ds">添加音频后开始播放 · 支持 MP3 WAV OGG</div>
     </div>
   </div>
 
   <!-- 右侧控制面板 -->
   <div id="rp">
+    <div id="portraitPanelHead">
+      <span>完整参数</span>
+    </div>
     <div class="ps">
       <div class="pst">可视化主题</div>
       <div class="tg">
@@ -75,6 +82,10 @@
         <div class="cs" style="background:linear-gradient(135deg,#fff,#aac)" onclick="setPal('mono',this)"></div>
         <div class="cs cs-rainbow" onclick="setPal('rainbow',this)" title="彩虹循环"></div>
         <div class="cc"><input type="color" value="#00f5ff" oninput="setCustCol(this.value)"></div>
+      </div>
+      <div class="theme-switch" aria-label="背景主题切换">
+        <button class="rb bg-theme-btn on" data-bg-theme="dark" onclick="setBgTheme('dark',this)" title="深色背景">深色</button>
+        <button class="rb bg-theme-btn" data-bg-theme="light" onclick="setBgTheme('light',this)" title="浅色背景">浅色</button>
       </div>
     </div>
     <div class="ps">
@@ -133,7 +144,7 @@
       </div>
       <div id="tp-waveform" class="tp-block" style="display:none">
         <div class="tp-label">— 声波形态 —</div>
-        <div class="pr"><div class="pl"><span>平滑度</span><span id="vtp3">0.12</span></div><input type="range" class="sl" min="0.02" max="0.5" step="0.01" value="0.12" oninput="setV('themeParams.waveSmooth',this,'vtp3',2)"></div>
+        <div class="pr"><div class="pl"><span>波速</span><span id="vtp3">0.08</span></div><input type="range" class="sl" min="0.02" max="0.5" step="0.01" value="0.08" oninput="setV('themeParams.waveSmooth',this,'vtp3',2)"></div>
       </div>
       <div id="tp-particles" class="tp-block" style="display:none">
         <div class="tp-label">— 粒子星云 —</div>
@@ -158,12 +169,12 @@
     <div class="ps">
       <div class="pst">背景特效</div>
       <div class="fg">
-        <button class="fb" onclick="togFx('rain',this)"><span class="fi">🌧</span>雨</button>
-        <button class="fb" onclick="togFx('snow',this)"><span class="fi">❄️</span>雪</button>
-        <button class="fb" onclick="togFx('fog',this)"><span class="fi">🌫</span>雾</button>
-        <button class="fb on" onclick="togFx('stars',this)"><span class="fi">⭐</span>星空</button>
-        <button class="fb" onclick="togFx('lightning',this)"><span class="fi">⚡</span>闪电</button>
-        <button class="fb" onclick="togFx('aurora',this)"><span class="fi">🌌</span>极光</button>
+        <button class="fb" data-fx="rain" onclick="togFx('rain',this)"><span class="fi">🌧</span>雨</button>
+        <button class="fb" data-fx="snow" onclick="togFx('snow',this)"><span class="fi">❄️</span>雪</button>
+        <button class="fb" data-fx="fog" onclick="togFx('fog',this)"><span class="fi">🌫</span>雾</button>
+        <button class="fb on" data-fx="stars" onclick="togFx('stars',this)"><span class="fi">⭐</span>星空</button>
+        <button class="fb" data-fx="lightning" onclick="togFx('lightning',this)"><span class="fi">⚡</span>闪电</button>
+        <button class="fb" data-fx="aurora" onclick="togFx('aurora',this)"><span class="fi">🌌</span>极光</button>
       </div>
       <div id="fxp-stars" class="fxp-block">
         <div class="pr" style="margin-top:7px"><div class="pl"><span>星星密度</span><span id="vfx1">420</span></div><input type="range" class="sl" min="80" max="900" step="20" value="420" oninput="setV('fxParams.starsDensity',this,'vfx1',0)"></div>
@@ -221,6 +232,40 @@
   </div>
 </div>
 
+<div id="portraitQuickBar">
+  <div id="portraitQuickHead">
+    <span>主题 / 背景</span>
+    <button class="plb portrait-only" id="portraitQuickToggle" onclick="togglePortraitQuickBar()" title="展开或收起">▾</button>
+  </div>
+  <div id="portraitQuickBody">
+    <div class="portraitQuickGroup">
+      <div class="portraitQuickLabel">主题</div>
+      <div class="portraitScroller">
+        <button class="tb portrait-chip on" data-theme="bars" onclick="setThm('bars',this)">条形频谱</button>
+        <button class="tb portrait-chip" data-theme="circle" onclick="setThm('circle',this)">圆形频谱</button>
+        <button class="tb portrait-chip" data-theme="waveform" onclick="setThm('waveform',this)">声波形态</button>
+        <button class="tb portrait-chip" data-theme="particles" onclick="setThm('particles',this)">粒子星云</button>
+        <button class="tb portrait-chip" data-theme="tunnel" onclick="setThm('tunnel',this)">音频隧道</button>
+        <button class="tb portrait-chip" data-theme="galaxy" onclick="setThm('galaxy',this)">星系旋转</button>
+        <button class="tb portrait-chip" data-theme="auto" onclick="setThm('auto',this)">综合循环</button>
+      </div>
+    </div>
+    <div class="portraitQuickGroup">
+      <div class="portraitQuickLabel">背景</div>
+      <div class="portraitScroller">
+        <button class="fb portrait-chip" data-fx="rain" onclick="togFx('rain',this)">雨</button>
+        <button class="fb portrait-chip" data-fx="snow" onclick="togFx('snow',this)">雪</button>
+        <button class="fb portrait-chip" data-fx="fog" onclick="togFx('fog',this)">雾</button>
+        <button class="fb portrait-chip on" data-fx="stars" onclick="togFx('stars',this)">星空</button>
+        <button class="fb portrait-chip" data-fx="lightning" onclick="togFx('lightning',this)">闪电</button>
+        <button class="fb portrait-chip" data-fx="aurora" onclick="togFx('aurora',this)">极光</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="portraitScrim" onclick="closePortraitPanels()"></div>
+
 <!-- ═══ 底部播放器栏 ═══ -->
 <div id="bar">
   <div id="np">
@@ -228,8 +273,11 @@
     <div id="nb">MusicViz · 音乐可视化</div>
   </div>
   <div id="sz">
+    <button class="tp portrait-only" id="portraitPlaylistBtn" onclick="togglePortraitPanel('playlist')" title="播放列表">☰</button>
     <button class="tp" id="pvb" onclick="prevTk()" disabled>⏮</button>
-    <button id="pb" onclick="togPlay()" disabled>▶</button>
+    <button id="pb" onclick="togPlay()" disabled aria-label="播放或暂停">
+      <img id="pbIcon" alt="播放">
+    </button>
     <button class="tp" id="nxb" onclick="nextTk()" disabled>⏭</button>
     <div id="pw">
       <span class="tt" id="ct">0:00</span>
@@ -244,13 +292,39 @@
 </div>
 
 <!-- ═══ JS 模块（按依赖顺序加载）═══ -->
-<script src="js/state.js"></script>      <!-- 全局状态、调色板、工具函数 -->
-<script src="js/audio.js"></script>      <!-- WebAudio、播放控制、节拍检测 -->
-<script src="js/background.js"></script> <!-- 背景特效：星空/雨/雪/雾/闪电/极光 -->
-<script src="js/webgl.js"></script>      <!-- WebGL 粒子扩展（可选） -->
-<script src="js/visualizer.js"></script> <!-- 六种可视化主题 + 图片互动 -->
-<script src="js/playlist.js"></script>   <!-- 播放列表 UI + 拖拽 + 图片导入 -->
-<script src="js/main.js"></script>       <!-- 渲染主循环 + UI 回调 + 初始化 -->
+<script>
+  (function () {
+    const qs = new URLSearchParams(location.search);
+    const assetVersion = qs.get('v') || String(Date.now());
+    window.__assetVersion = assetVersion;
+    const head = document.head;
+    const body = document.body;
+
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = `css/style.css?v=${assetVersion}`;
+    head.appendChild(css);
+
+    const pbIcon = document.getElementById('pbIcon');
+    if (pbIcon) pbIcon.src = `assets/icons/播放.svg?v=${assetVersion}`;
+
+    const scripts = [
+      'js/state.js',
+      'js/audio.js',
+      'js/background.js',
+      'js/webgl.js',
+      'js/visualizer.js',
+      'js/playlist.js',
+      'js/main.js',
+    ];
+
+    scripts.forEach(src => {
+      const s = document.createElement('script');
+      s.src = `${src}?v=${assetVersion}`;
+      body.appendChild(s);
+    });
+  })();
+</script>
 
 </body>
 </html>
