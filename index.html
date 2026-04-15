@@ -351,7 +351,10 @@
     head.appendChild(css);
 
     const pbIcon = document.getElementById('pbIcon');
-    if (pbIcon) pbIcon.src = `assets/icons/播放.svg?v=${assetVersion}`;
+    if (pbIcon) {
+      pbIcon.src = `assets/icons/播放.svg?v=${assetVersion}`;
+      pbIcon.dataset.iconSrc = pbIcon.src;
+    }
 
     const scripts = [
       'js/state.js',

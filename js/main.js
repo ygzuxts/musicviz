@@ -70,7 +70,7 @@ function resize() {
   else {
     closePortraitPanels();
     document.body.classList.remove('portrait-quick-collapsed');
-    document.body.classList.remove('portrait-guide-on', 'portrait-settings-hint');
+    document.body.classList.remove('portrait-guide-on', 'portrait-settings-hint', 'portrait-quick-hint', 'portrait-playlist-hint');
     _clearPortraitHintBubble();
   }
   _syncPortraitLayout();
@@ -771,12 +771,19 @@ function _syncPortraitUI() {
 let _portraitGuideTimer = null;
 
 function _clearPortraitHintBubble() {
-  const bubble = document.getElementById('portraitHintBubble');
-  if (bubble) bubble.remove();
+  document.querySelectorAll('.portrait-hint-bubble').forEach(bubble => bubble.remove());
+}
+
+function _ensurePortraitHintBubble(target, text, extraClass = '') {
+  if (!target) return;
+  const bubble = document.createElement('div');
+  bubble.className = `portrait-hint-bubble${extraClass ? ` ${extraClass}` : ''}`;
+  bubble.textContent = text;
+  target.appendChild(bubble);
 }
 
 function _dismissPortraitGuide() {
-  document.body.classList.remove('portrait-guide-on', 'portrait-settings-hint');
+  document.body.classList.remove('portrait-guide-on', 'portrait-settings-hint', 'portrait-quick-hint', 'portrait-playlist-hint');
   _clearPortraitHintBubble();
   if (_portraitGuideTimer) {
     clearTimeout(_portraitGuideTimer);
@@ -788,20 +795,17 @@ function _showPortraitFirstUseGuide() {
   if (!_isPortraitUI()) return;
   if (document.body.classList.contains('portrait-playlist-open') || document.body.classList.contains('portrait-settings-open')) return;
 
-  document.body.classList.add('portrait-guide-on', 'portrait-settings-hint');
+  document.body.classList.add('portrait-guide-on', 'portrait-settings-hint', 'portrait-quick-hint', 'portrait-playlist-hint');
 
-  const btn = document.getElementById('portraitHdrSettingsBtn');
-  if (btn && !document.getElementById('portraitHintBubble')) {
-    const bubble = document.createElement('div');
-    bubble.id = 'portraitHintBubble';
-    bubble.textContent = '这里调主题和特效';
-    btn.appendChild(bubble);
-  }
+  _clearPortraitHintBubble();
+  _ensurePortraitHintBubble(document.getElementById('portraitHdrSettingsBtn'), '这里调节参数');
+  _ensurePortraitHintBubble(document.getElementById('portraitQuickToggle'), '这里切换主题背景', 'above');
+  _ensurePortraitHintBubble(document.getElementById('portraitPlaylistBtn'), '这里打开列表添加音乐', 'above');
 
   if (_portraitGuideTimer) clearTimeout(_portraitGuideTimer);
   _portraitGuideTimer = setTimeout(() => {
     _dismissPortraitGuide();
-  }, 5000);
+  }, 6000);
 }
 
 function _syncPortraitLayout() {
@@ -824,23 +828,47 @@ function togglePortraitPanel(name) {
   const willOpen = !document.body.classList.contains(cls);
   document.body.classList.remove(other);
   document.body.classList.toggle(cls, willOpen);
-  if (willOpen) {
-    _dismissPortraitGuide();
-  }
+  _dismissPortraitGuide();
   _syncPortraitLayout();
   _syncPortraitUI();
 }
 
 function togglePortraitQuickBar() {
   if (!_isPortraitUI()) return;
+  _dismissPortraitGuide();
   document.body.classList.toggle('portrait-quick-collapsed');
   _syncPortraitLayout();
   _syncPortraitUI();
 }
 
+document.addEventListener('pointerdown', e => {
+  if (!_isPortraitUI()) return;
+  if (document.body.classList.contains('portrait-quick-collapsed')) return;
+  if (document.body.classList.contains('portrait-playlist-open') || document.body.classList.contains('portrait-settings-open')) return;
+  const quickBar = document.getElementById('portraitQuickBar');
+  if (!quickBar) return;
+  if (quickBar.contains(e.target)) return;
+  document.body.classList.add('portrait-quick-collapsed');
+  _dismissPortraitGuide();
+  _syncPortraitLayout();
+  _syncPortraitUI();
+});
+
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (!document.body.classList.contains('portrait-playlist-open') && !document.body.classList.contains('portrait-settings-open')) return;
+  if (!document.body.classList.contains('portrait-playlist-open')
+    && !document.body.classList.contains('portrait-settings-open')
+    && document.body.classList.contains('portrait-quick-collapsed')) return;
+  if (!_isPortraitUI()) return;
+  if (!document.body.classList.contains('portrait-quick-collapsed')
+    && !document.body.classList.contains('portrait-playlist-open')
+    && !document.body.classList.contains('portrait-settings-open')) {
+    document.body.classList.add('portrait-quick-collapsed');
+    _dismissPortraitGuide();
+    _syncPortraitLayout();
+    _syncPortraitUI();
+    return;
+  }
   closePortraitPanels();
 });
 

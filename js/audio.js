@@ -531,13 +531,41 @@ function togMute() {
 }
 
 // ── 更新播放器按钮状态 ──
+let _pbIconTimer = null;
+let _pbIconTarget = '';
+
+function _setPlayButtonIcon(icon, src, alt) {
+  if (!icon) return;
+  if (icon.dataset.iconSrc === src) {
+    icon.alt = alt;
+    return;
+  }
+
+  _pbIconTarget = src;
+  icon.alt = alt;
+  icon.classList.add('switching');
+
+  if (_pbIconTimer) clearTimeout(_pbIconTimer);
+  _pbIconTimer = setTimeout(() => {
+    icon.src = _pbIconTarget;
+    icon.dataset.iconSrc = _pbIconTarget;
+    requestAnimationFrame(() => {
+      icon.classList.remove('switching');
+    });
+    _pbIconTimer = null;
+  }, 110);
+}
+
 function updUI() {
   const p = document.getElementById('pb');
   const icon = document.getElementById('pbIcon');
   const ver = window.__assetVersion ? `?v=${window.__assetVersion}` : '';
   if (icon) {
-    icon.src = playing ? `assets/icons/暂停.svg${ver}` : `assets/icons/播放.svg${ver}`;
-    icon.alt = playing ? '暂停' : '播放';
+    _setPlayButtonIcon(
+      icon,
+      playing ? `assets/icons/暂停.svg${ver}` : `assets/icons/播放.svg${ver}`,
+      playing ? '暂停' : '播放'
+    );
   }
   p.setAttribute('aria-label', playing ? '暂停' : '播放');
   p.disabled = plist.length === 0;

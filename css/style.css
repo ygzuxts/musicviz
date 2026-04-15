@@ -340,6 +340,7 @@ body.portrait-ui #portraitHdrSettingsBtn {
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .portrait-quick-toggle-text,
@@ -357,7 +358,9 @@ body.portrait-settings-open #portraitHdrSettingsBtn {
   color: var(--accent);
 }
 
-body.portrait-ui.portrait-settings-hint #portraitHdrSettingsBtn {
+body.portrait-ui.portrait-settings-hint #portraitHdrSettingsBtn,
+body.portrait-ui.portrait-quick-hint #portraitQuickToggle,
+body.portrait-ui.portrait-playlist-hint #portraitPlaylistBtn {
   animation: portraitHintPulse 1.35s ease-in-out 3;
   border-color: var(--accent);
   color: var(--accent);
@@ -405,7 +408,7 @@ body.portrait-ui.portrait-settings-hint #portraitHdrSettingsBtn {
   color: rgba(224,232,255,.76);
 }
 
-#portraitHintBubble {
+.portrait-hint-bubble {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
@@ -420,12 +423,17 @@ body.portrait-ui.portrait-settings-hint #portraitHdrSettingsBtn {
   box-shadow: 0 10px 24px rgba(0,0,0,.22);
 }
 
+.portrait-hint-bubble.above {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
 body[data-bg-theme="light"] #portraitQuickHead span,
 body[data-bg-theme="light"] .portraitQuickLabel {
   color: rgba(22,32,51,.72);
 }
 
-body[data-bg-theme="light"] #portraitHintBubble {
+body[data-bg-theme="light"] .portrait-hint-bubble {
   background: rgba(233,240,247,.96);
   color: #162033;
   border-color: rgba(60,169,244,.24);
@@ -1018,6 +1026,14 @@ body[data-bg-theme="light"] #portraitHintBubble {
   object-fit: contain;
   display: block;
   pointer-events: none;
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity .16s ease, transform .2s cubic-bezier(.22,1,.36,1), filter .18s ease;
+}
+
+#pb img.switching {
+  opacity: .22;
+  transform: scale(.82);
 }
 
 /* 进度条 */
@@ -1649,6 +1665,7 @@ body[data-bg-theme="light"] #vs::-webkit-slider-runnable-track {
   }
 
   #portraitHdrSettingsBtn {
+    position: relative;
     min-width: 66px;
     height: 32px;
     padding: 0 12px;
@@ -1685,6 +1702,7 @@ body[data-bg-theme="light"] #vs::-webkit-slider-runnable-track {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    position: relative;
     transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;
     opacity: 1;
     min-width: 68px;
