@@ -202,6 +202,7 @@ async function _listBuiltinAudioFiles() {
 /** 批量加载音频文件，解码后加入播放列表 */
 async function loadFiles(files) {
   wakeCtx();
+  if (window.dismissPortraitGuide) window.dismissPortraitGuide();
   for (const f of files) {
     if (!f.type.startsWith('audio/') && !/\.(mp3|wav|ogg|aac|m4a|flac|wma|opus|webm)$/i.test(f.name)) continue;
     try {
@@ -221,6 +222,7 @@ async function loadBuiltinAudio() {
   const names = await _listBuiltinAudioFiles();
   if (!names.length) return;
   wakeCtx();
+  if (window.dismissPortraitGuide) window.dismissPortraitGuide();
 
   let added = 0;
   for (const fileName of names) {

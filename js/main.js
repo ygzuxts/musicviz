@@ -70,9 +70,12 @@ function resize() {
   else {
     closePortraitPanels();
     document.body.classList.remove('portrait-quick-collapsed');
+    document.body.classList.remove('portrait-guide-on', 'portrait-settings-hint');
+    _clearPortraitHintBubble();
   }
   _syncPortraitLayout();
   _syncPortraitUI();
+  if (portraitUI) _showPortraitFirstUseGuide();
 }
 window.addEventListener('resize', resize);
 
@@ -751,10 +754,54 @@ function _isPortraitUI() {
 
 function _syncPortraitUI() {
   const btn = document.getElementById('portraitHdrSettingsBtn');
-  if (!btn) return;
-  const open = document.body.classList.contains('portrait-settings-open');
-  btn.textContent = open ? '收起' : '参数';
-  btn.classList.toggle('on', open);
+  const quickToggleText = document.querySelector('#portraitQuickToggle .portrait-quick-toggle-text');
+  const settingsOpen = document.body.classList.contains('portrait-settings-open');
+  const quickCollapsed = document.body.classList.contains('portrait-quick-collapsed');
+
+  if (btn) {
+    btn.textContent = settingsOpen ? '收起' : '参数';
+    btn.classList.toggle('on', settingsOpen);
+  }
+
+  if (quickToggleText) {
+    quickToggleText.textContent = quickCollapsed ? '展开' : '收起';
+  }
+}
+
+let _portraitGuideTimer = null;
+
+function _clearPortraitHintBubble() {
+  const bubble = document.getElementById('portraitHintBubble');
+  if (bubble) bubble.remove();
+}
+
+function _dismissPortraitGuide() {
+  document.body.classList.remove('portrait-guide-on', 'portrait-settings-hint');
+  _clearPortraitHintBubble();
+  if (_portraitGuideTimer) {
+    clearTimeout(_portraitGuideTimer);
+    _portraitGuideTimer = null;
+  }
+}
+
+function _showPortraitFirstUseGuide() {
+  if (!_isPortraitUI()) return;
+  if (document.body.classList.contains('portrait-playlist-open') || document.body.classList.contains('portrait-settings-open')) return;
+
+  document.body.classList.add('portrait-guide-on', 'portrait-settings-hint');
+
+  const btn = document.getElementById('portraitHdrSettingsBtn');
+  if (btn && !document.getElementById('portraitHintBubble')) {
+    const bubble = document.createElement('div');
+    bubble.id = 'portraitHintBubble';
+    bubble.textContent = '这里调主题和特效';
+    btn.appendChild(bubble);
+  }
+
+  if (_portraitGuideTimer) clearTimeout(_portraitGuideTimer);
+  _portraitGuideTimer = setTimeout(() => {
+    _dismissPortraitGuide();
+  }, 5000);
 }
 
 function _syncPortraitLayout() {
@@ -777,6 +824,9 @@ function togglePortraitPanel(name) {
   const willOpen = !document.body.classList.contains(cls);
   document.body.classList.remove(other);
   document.body.classList.toggle(cls, willOpen);
+  if (willOpen) {
+    _dismissPortraitGuide();
+  }
   _syncPortraitLayout();
   _syncPortraitUI();
 }
@@ -785,6 +835,7 @@ function togglePortraitQuickBar() {
   if (!_isPortraitUI()) return;
   document.body.classList.toggle('portrait-quick-collapsed');
   _syncPortraitLayout();
+  _syncPortraitUI();
 }
 
 document.addEventListener('keydown', e => {
@@ -796,6 +847,7 @@ document.addEventListener('keydown', e => {
 window.closePortraitPanels = closePortraitPanels;
 window.togglePortraitPanel = togglePortraitPanel;
 window.togglePortraitQuickBar = togglePortraitQuickBar;
+window.dismissPortraitGuide = _dismissPortraitGuide;
 
 // ══════════════════════════════════════════
 // 页面初始化

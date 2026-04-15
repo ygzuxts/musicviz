@@ -64,6 +64,10 @@
       </div>
       <div class="dt">音乐可视化工作台</div>
       <div class="ds">添加音频后开始播放 · 支持 MP3 WAV OGG</div>
+      <div id="portraitGuide" class="portrait-guide" aria-hidden="true">
+        <div class="portrait-guide-line">先点底部「列表」添加音乐</div>
+        <div class="portrait-guide-line">再点右上「参数」调主题和特效</div>
+      </div>
     </div>
   </div>
 
@@ -252,7 +256,7 @@
 <div id="portraitQuickBar">
   <div id="portraitQuickHead">
     <span>主题 / 背景</span>
-    <button class="plb portrait-only" id="portraitQuickToggle" onclick="togglePortraitQuickBar()" title="展开或收起">▾</button>
+    <button class="plb portrait-only" id="portraitQuickToggle" onclick="togglePortraitQuickBar()" title="展开或收起"><span class="portrait-quick-toggle-text">展开</span><span class="portrait-quick-toggle-arrow">▾</span></button>
   </div>
   <div id="portraitQuickBody">
     <div class="portraitQuickGroup">
@@ -290,7 +294,7 @@
     <div id="nb">MusicViz · 音乐可视化</div>
   </div>
   <div id="sz">
-    <button class="tp portrait-only" id="portraitPlaylistBtn" onclick="togglePortraitPanel('playlist')" title="播放列表">☰</button>
+    <button class="tp portrait-only" id="portraitPlaylistBtn" onclick="togglePortraitPanel('playlist')" title="播放列表"><span class="portrait-playlist-icon">☰</span><span class="portrait-playlist-text">列表</span></button>
     <button class="tp" id="pvb" onclick="prevTk()" disabled>⏮</button>
     <button id="pb" onclick="togPlay()" disabled aria-label="播放或暂停">
       <img id="pbIcon" alt="播放">
