@@ -65,6 +65,8 @@ let imgIdx  = 0;
 // ── 视频 ──
 let bgVidEl   = null;        // 背景视频 <video> 元素（独立）
 let bgVidOn   = false;       // 背景视频是否激活
+let bgVideoList = [];        // [{name, src, builtin}]
+let bgVideoIdx  = -1;        // 当前选中的背景视频索引
 
 // ══════════════════════════════════════════
 // 用户设置（所有可调参数）

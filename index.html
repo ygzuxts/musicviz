@@ -30,7 +30,7 @@
       <span id="plc"></span>
       <div style="flex:1"></div>
       <button class="plb portrait-only" onclick="closePortraitPanels()" title="关闭"><img src="assets/icons/关闭.svg" class="icon"></button>
-      <button id="plloop" class="plb" onclick="togLoop()" title="顺序播放">⇢</button>
+      <button id="plloop" class="plb" onclick="togLoop()" title="顺序播放"><img src="assets/icons/顺序.svg" class="icon" alt="顺序播放"></button>
       <button id="plclr"  class="plb" onclick="clrPL()"  title="清空列表"><img src="assets/icons/删除.svg" class="icon"></button>
       <button id="pla"    class="plb" onclick="document.getElementById('fi').click()" title="添加"><img src="assets/icons/添加.svg" class="icon"></button>
     </div>
@@ -214,16 +214,16 @@
     <div class="ps">
       <div class="pst">图片互动</div>
       <div style="display:flex;gap:5px;margin-bottom:7px">
-        <button class="hb" style="flex:1;font-size:.58rem" onclick="document.getElementById('ii').click()">🖼 添加图片</button>
-        <button class="hb" style="flex:1;font-size:.58rem" id="vidBgBtn" onclick="document.getElementById('bgvi').click()">📺 视频背景</button>
+        <button class="hb" style="flex:1;font-size:.58rem" onclick="document.getElementById('ii').click()"><img src="assets/icons/图片.svg" class="icon" alt="添加图片">添加图片</button>
+        <button class="hb" style="flex:1;font-size:.58rem" id="vidBgBtn" onclick="document.getElementById('bgvi').click()"><img src="assets/icons/视频.svg" class="icon" alt="视频背景">视频背景</button>
       </div>
       <input type="file" id="ii" accept="image/*" multiple style="display:none">
       <input type="file" id="bgvi" accept="video/*" style="display:none">
       <div id="igal" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px;min-height:0"></div>
       <div id="ibgvid" class="igvid" style="display:none;align-items:center;gap:5px;margin-bottom:6px;font-size:.56rem"></div>
       <div id="builtinBgVideoWrap" class="builtin-media" style="display:none">
-        <div class="builtin-media-title">内置背景视频</div>
-        <div id="builtinBgVideoList" class="builtin-media-list"></div>
+        <div class="builtin-media-title">背景视频库</div>
+        <div id="builtinBgVideoList" class="builtin-media-list builtin-video-list"></div>
       </div>
       <div class="fg" style="margin-bottom:7px">
         <button class="fb" id="igb" onclick="setIFx('gray',this)"><img src="assets/icons/灰度.svg" class="icon">灰度</button>
@@ -325,8 +325,8 @@
         "pexels-nathan-steele-274130124-32730210.jpg"
       ],
       videos: [
-        "15567127_3840_2160_24fps.mp4",
-        "15610623_1920_1080_30fps.mp4"
+        "15610623_1920_1080_30fps.mp4",
+        "Video Project 4.mp4"
       ]
     };
     const head = document.head;

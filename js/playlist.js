@@ -17,7 +17,12 @@
 // ══════════════════════════════════════════
 
 const _loopModes = ['seq', 'loop', 'one', 'shuffle'];
-const _loopIcons = { seq: '⇢', loop: '🔁', one: '🔂', shuffle: '🔀' };
+const _loopIcons = {
+  seq: 'assets/icons/顺序.svg',
+  loop: 'assets/icons/循环播放.svg',
+  one: 'assets/icons/单曲循环.svg',
+  shuffle: 'assets/icons/随机播放.svg',
+};
 const _loopTips  = { seq: '顺序播放', loop: '列表循环', one: '单曲循环', shuffle: '随机播放' };
 
 function togLoop() {
@@ -30,7 +35,8 @@ function togLoop() {
 function _syncLoopBtn() {
   const btn = document.getElementById('plloop');
   if (!btn) return;
-  btn.textContent = _loopIcons[S.loopMode];
+  const ver = window.__assetVersion ? `?v=${window.__assetVersion}` : '';
+  btn.innerHTML = `<img src="${_loopIcons[S.loopMode]}${ver}" class="icon" alt="${_loopTips[S.loopMode]}">`;
   btn.title       = _loopTips[S.loopMode];
   btn.classList.toggle('plb-on', S.loopMode !== 'seq');
 }
@@ -245,6 +251,29 @@ function _displayName(fileName) {
   return fileName.replace(/\.[^.]+$/, '');
 }
 
+async function _loadBuiltinAssetList(dir, fallbackKey, exts) {
+  const fallback = ((window.__builtinAssets && window.__builtinAssets[fallbackKey]) || [])
+    .filter(name => !/^\./.test(name) && exts.test(name));
+
+  if (location.protocol === 'file:') return fallback;
+
+  try {
+    const ver = window.__assetVersion ? `?v=${window.__assetVersion}` : '';
+    const res = await fetch(`assets/${dir}/index.json${ver}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const names = Array.isArray(data) ? data : Array.isArray(data.files) ? data.files : [];
+    const cleaned = names
+      .map(name => typeof name === 'string' ? name.trim() : '')
+      .filter(name => name && !/^\./.test(name) && exts.test(name));
+    if (cleaned.length) return [...new Set(cleaned)];
+  } catch (e) {
+    console.warn(`读取内置${dir}清单失败，回退到页面清单模式:`, e);
+  }
+
+  return [...new Set(fallback)];
+}
+
 function addBuiltinImages() {
   const names = ((window.__builtinAssets && window.__builtinAssets.images) || []).filter(name => !/^\./.test(name));
   if (!names.length) return;
@@ -364,12 +393,63 @@ function renderImgGallery() {
 document.getElementById('bgvi').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f || !f.type.startsWith('video/')) return;
-  loadBgVideo(f);
+  addBgVideo(f);
   e.target.value = '';
 });
 
-function loadBgVideo(file) {
-  loadBgVideoSource(URL.createObjectURL(file), file.name.replace(/\.[^.]+$/, ''));
+function _findBgVideoIndex(name, builtin) {
+  return bgVideoList.findIndex(entry => entry.name === name && !!entry.builtin === !!builtin);
+}
+
+function _setBgVideoEntry(entry, idx) {
+  if (!entry) return;
+  bgVideoIdx = idx;
+  loadBgVideoSource(entry.src, entry.name);
+  renderBgVideoGallery();
+}
+
+function addBgVideo(file) {
+  const name = file.name.replace(/\.[^.]+$/, '');
+  const existing = _findBgVideoIndex(name, false);
+  if (existing >= 0) {
+    _setBgVideoEntry(bgVideoList[existing], existing);
+    return;
+  }
+
+  const entry = {
+    name,
+    src: URL.createObjectURL(file),
+    builtin: false,
+  };
+  bgVideoList.push(entry);
+  _setBgVideoEntry(entry, bgVideoList.length - 1);
+}
+
+function selectBgVideo(i) {
+  const entry = bgVideoList[i];
+  if (!entry) return;
+  _setBgVideoEntry(entry, i);
+}
+
+function removeBgVideo(i, ev) {
+  if (ev) ev.stopPropagation();
+  const entry = bgVideoList[i];
+  if (!entry || entry.builtin) return;
+
+  const wasCurrent = i === bgVideoIdx;
+  URL.revokeObjectURL(entry.src);
+  bgVideoList.splice(i, 1);
+
+  if (!bgVideoList.length) {
+    bgVideoIdx = -1;
+    if (wasCurrent) stopBgVideo();
+  } else if (wasCurrent) {
+    const next = Math.min(i, bgVideoList.length - 1);
+    _setBgVideoEntry(bgVideoList[next], next);
+  } else {
+    if (i < bgVideoIdx) bgVideoIdx--;
+    renderBgVideoGallery();
+  }
 }
 
 function loadBgVideoSource(src, name) {
@@ -396,20 +476,52 @@ function stopBgVideo() {
   const btn = document.getElementById('vidBgBtn');
   if (btn) btn.classList.remove('on');
   _syncBgVidStatus(null);
+  renderBgVideoGallery();
 }
 
 function _syncBgVidStatus(name) {
   const el = document.getElementById('ibgvid');
   if (!el) return;
+  const ver = window.__assetVersion ? `?v=${window.__assetVersion}` : '';
   if (name) {
     el.style.display = 'flex';
-    el.innerHTML = `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📺 ${name}</span>`
-      + `<button class="igdel" style="position:static;color:var(--muted)" onclick="stopBgVideo()">✕</button>`;
+    el.innerHTML = `<span class="bgv-status-name"><img src="assets/icons/视频.svg${ver}" class="bgv-status-icon" alt="视频背景">${name}</span>`
+      + `<button class="igdel bgv-status-del" style="position:static" onclick="stopBgVideo()"><img src="assets/icons/删除.svg${ver}" class="icon" alt="删除"></button>`;
     el.classList.add('on');
   } else {
     el.style.display = 'none';
     el.classList.remove('on');
   }
+}
+
+function renderBgVideoGallery() {
+  const bgWrap = document.getElementById('builtinBgVideoWrap');
+  const bgList = document.getElementById('builtinBgVideoList');
+  if (!bgWrap || !bgList) return;
+
+  bgList.innerHTML = '';
+  if (!bgVideoList.length) {
+    bgWrap.style.display = 'none';
+    return;
+  }
+
+  bgWrap.style.display = '';
+  bgVideoList.forEach((entry, i) => {
+    const ver = window.__assetVersion ? `?v=${window.__assetVersion}` : '';
+    const item = document.createElement('div');
+    item.className = 'bgv-item' + (i === bgVideoIdx && bgVidOn ? ' on' : '');
+    item.title = `${entry.builtin ? '内置' : '导入'}背景视频：${entry.name}`;
+    item.innerHTML = `
+      <img src="assets/icons/视频.svg${ver}" class="bgv-icon icon" alt="视频背景">
+      <span class="bgv-name">${entry.name}</span>
+      <span class="bgv-tag">${entry.builtin ? '内置' : '导入'}</span>
+      ${entry.builtin ? '' : `<button class="bgv-del" title="删除"><img src="assets/icons/删除.svg${ver}" class="icon" alt="删除"></button>`}
+    `;
+    item.addEventListener('click', () => selectBgVideo(i));
+    const del = item.querySelector('.bgv-del');
+    if (del) del.addEventListener('click', ev => removeBgVideo(i, ev));
+    bgList.appendChild(item);
+  });
 }
 
 // ══════════════════════════════════════════
@@ -480,26 +592,16 @@ function loadDefaultImages() {
   }, '默认-紫粉');
 }
 
-function renderBuiltinVideoLibrary() {
-  const videos = ((window.__builtinAssets && window.__builtinAssets.videos) || []).filter(name => !/^\./.test(name));
-
-  const bgWrap = document.getElementById('builtinBgVideoWrap');
-  const bgList = document.getElementById('builtinBgVideoList');
-
-  if (bgWrap && bgList) {
-    bgList.innerHTML = '';
-    if (videos.length) {
-      bgWrap.style.display = '';
-      videos.forEach(fileName => {
-        const btn = document.createElement('button');
-        btn.className = 'hb builtin-media-btn';
-        btn.textContent = _displayName(fileName);
-        btn.title = `使用内置背景视频：${_displayName(fileName)}`;
-        btn.addEventListener('click', () => loadBgVideoSource(_assetUrl('videos', fileName), _displayName(fileName)));
-        bgList.appendChild(btn);
-      });
-    } else {
-      bgWrap.style.display = 'none';
-    }
-  }
+async function renderBuiltinVideoLibrary() {
+  const videos = await _loadBuiltinAssetList('videos', 'videos', /\.(mp4|webm|mov|m4v|ogv)$/i);
+  videos.forEach(fileName => {
+    const name = _displayName(fileName);
+    if (_findBgVideoIndex(name, true) >= 0) return;
+    bgVideoList.push({
+      name,
+      src: _assetUrl('videos', fileName),
+      builtin: true,
+    });
+  });
+  renderBgVideoGallery();
 }
