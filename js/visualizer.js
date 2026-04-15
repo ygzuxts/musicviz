@@ -46,6 +46,229 @@ function _portraitViz() {
   return CV.height > CV.width * 1.08;
 }
 
+function _idleAmp(seed = 0, speed = 0.02, min = 0.2, span = 0.8) {
+  return min + (Math.sin(tk * speed + seed) * 0.5 + 0.5) * span;
+}
+
+function _idleAccentFrame(alpha = 0.16) {
+  const p = gp();
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = p.a;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(18.5, 18.5, CV.width - 37, CV.height - 37);
+  ctx.globalAlpha = alpha * 0.45;
+  ctx.strokeStyle = p.c;
+  ctx.strokeRect(32.5, 32.5, CV.width - 65, CV.height - 65);
+  ctx.restore();
+}
+
+function _idleThemeLabel(title, sub) {
+  const p = gp();
+  const portrait = _portraitViz();
+  const x = CV.width / 2;
+  const y = CV.height * (portrait ? 0.78 : 0.84);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.shadowBlur = 24;
+  ctx.shadowColor = p.a;
+  ctx.fillStyle = `rgba(${hr(p.a)},0.9)`;
+  ctx.font = `700 ${portrait ? 17 : 19}px 'Noto Sans SC', sans-serif`;
+  ctx.fillText(title, x, y);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = `rgba(${hr(p.c)},0.55)`;
+  ctx.font = `500 ${portrait ? 10 : 11}px 'Noto Sans SC', sans-serif`;
+  ctx.fillText(sub, x, y + (portrait ? 20 : 22));
+  ctx.restore();
+}
+
+function dBarsIdle(freq) {
+  const p = gp();
+  dBars(freq);
+  const portrait = _portraitViz();
+  const y = CV.height * (portrait ? 0.84 : 0.88);
+  const sweep = (Math.sin(tk * 0.012) * 0.5 + 0.5);
+  const x = CV.width * (0.16 + sweep * 0.68);
+  const beam = ctx.createLinearGradient(x - 80, 0, x + 80, 0);
+  beam.addColorStop(0, 'transparent');
+  beam.addColorStop(0.5, `rgba(${hr(p.a)},0.16)`);
+  beam.addColorStop(1, 'transparent');
+  ctx.fillStyle = beam;
+  ctx.fillRect(x - 80, 0, 160, CV.height);
+  ctx.strokeStyle = `rgba(${hr(p.c)},0.2)`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(CV.width * 0.08, y);
+  ctx.lineTo(CV.width * 0.92, y);
+  ctx.stroke();
+  _idleThemeLabel('条形频谱', '待机预览');
+}
+
+function dCircleIdle(freq) {
+  const p = gp();
+  dCircle(freq);
+  const portrait = _portraitViz();
+  const cx = CV.width / 2;
+  const cy = CV.height * (portrait ? 0.44 : 0.5);
+  const ringR = Math.min(CV.width, CV.height) * (portrait ? 0.29 : 0.34);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(tk * 0.003);
+  ctx.strokeStyle = `rgba(${hr(p.a)},0.22)`;
+  ctx.setLineDash([10, 14]);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  for (let i = 0; i < 4; i++) {
+    const a = tk * 0.01 + i * Math.PI / 2;
+    const x = Math.cos(a) * ringR;
+    const y = Math.sin(a) * ringR;
+    ctx.beginPath();
+    ctx.fillStyle = lc(p.a, p.b, i / 4);
+    ctx.globalAlpha = 0.7;
+    ctx.arc(x, y, 3.5 + _idleAmp(i, 0.035, 0.4, 1.8), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+  _idleThemeLabel('圆形频谱', '待机预览');
+}
+
+function dWaveIdle() {
+  const p = gp();
+  const portrait = _portraitViz();
+  const cy = CV.height * 0.5;
+  const amp = Math.min(CV.width, CV.height) * (portrait ? 0.12 : 0.1);
+  const lines = [
+    { off: 0, alpha: 0.95, width: 2.4, shift: 0, color: p.a },
+    { off: 20, alpha: 0.36, width: 1.6, shift: 0.8, color: p.c },
+    { off: -22, alpha: 0.24, width: 1.2, shift: 1.6, color: p.b },
+  ];
+  lines.forEach(line => {
+    ctx.beginPath();
+    for (let x = 0; x <= CV.width; x += 12) {
+      const t = x / CV.width;
+      const y = cy + line.off
+        + Math.sin(t * Math.PI * 4 + tk * 0.045 + line.shift) * amp * 0.55
+        + Math.sin(t * Math.PI * 9 - tk * 0.028 + line.shift) * amp * 0.18;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = line.color;
+    ctx.globalAlpha = line.alpha;
+    ctx.lineWidth = line.width;
+    ctx.shadowBlur = line.width * 6;
+    ctx.shadowColor = line.color;
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  const fill = ctx.createLinearGradient(0, cy - amp, 0, cy + amp);
+  fill.addColorStop(0, `rgba(${hr(p.a)},0.1)`);
+  fill.addColorStop(0.5, `rgba(${hr(p.c)},0.03)`);
+  fill.addColorStop(1, `rgba(${hr(p.b)},0.1)`);
+  ctx.fillStyle = fill;
+  ctx.fillRect(0, cy - amp * 1.1, CV.width, amp * 2.2);
+  _idleThemeLabel('声波形态', '待机预览');
+}
+
+function dPartsIdle(en) {
+  const p = gp();
+  dParts(en);
+  const portrait = _portraitViz();
+  const cx = CV.width / 2;
+  const cy = CV.height * (portrait ? 0.43 : 0.5);
+  const r = Math.min(CV.width, CV.height) * (portrait ? 0.12 : 0.1);
+  const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.2);
+  halo.addColorStop(0, `rgba(${hr(p.a)},0.14)`);
+  halo.addColorStop(0.55, `rgba(${hr(p.b)},0.06)`);
+  halo.addColorStop(1, 'transparent');
+  ctx.fillStyle = halo;
+  ctx.fillRect(0, 0, CV.width, CV.height);
+  ctx.strokeStyle = `rgba(${hr(p.c)},0.18)`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * (1.25 + _idleAmp(0.5, 0.03, 0.05, 0.18)), 0, Math.PI * 2);
+  ctx.stroke();
+  _idleThemeLabel('粒子星云', '待机预览');
+}
+
+function dTunnelIdle(freq) {
+  const p = gp();
+  dTunnel(freq);
+  const portrait = _portraitViz();
+  const cx = CV.width / 2;
+  const cy = CV.height * (portrait ? 0.44 : 0.5);
+  const reticleR = Math.min(CV.width, CV.height) * (portrait ? 0.09 : 0.075);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(tk * 0.008);
+  ctx.strokeStyle = `rgba(${hr(p.a)},0.28)`;
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(reticleR + 12, 0);
+    ctx.lineTo(reticleR + 34, 0);
+    ctx.stroke();
+    ctx.rotate(Math.PI / 2);
+  }
+  ctx.restore();
+  ctx.beginPath();
+  ctx.strokeStyle = `rgba(${hr(p.c)},0.18)`;
+  ctx.arc(cx, cy, reticleR, 0, Math.PI * 2);
+  ctx.stroke();
+  _idleThemeLabel('音频隧道', '待机预览');
+}
+
+function dGalaxyIdle(freq) {
+  const p = gp();
+  dGalaxy(freq);
+  const portrait = _portraitViz();
+  const cx = CV.width / 2;
+  const cy = CV.height * (portrait ? 0.43 : 0.5);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(-tk * 0.0022);
+  ctx.strokeStyle = `rgba(${hr(p.a)},0.16)`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, CV.width * 0.19, CV.height * (portrait ? 0.07 : 0.1), 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.rotate(Math.PI / 3);
+  ctx.strokeStyle = `rgba(${hr(p.c)},0.12)`;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, CV.width * 0.15, CV.height * (portrait ? 0.055 : 0.08), 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  _idleThemeLabel('星系旋转', '待机预览');
+}
+
+function dAutoIdle(freq, en) {
+  _autoTk++;
+  if (_autoTk > _AUTO_HOLD) {
+    _autoTk = 1;
+    _autoIdx = (_autoIdx + 1) % _autoThemes.length;
+  }
+  switch (_autoThemes[_autoIdx]) {
+    case 'bars':      dBarsIdle(freq);   break;
+    case 'circle':    dCircleIdle(freq); break;
+    case 'waveform':  dWaveIdle();       break;
+    case 'particles':
+      if (!(canUseWebGLTheme('particles') && dPartsGL(en))) dPartsIdle(en);
+      else _idleThemeLabel('粒子星云', '待机预览');
+      break;
+    case 'tunnel':
+      if (!(canUseWebGLTheme('tunnel') && dTunnelGL(freq))) dTunnelIdle(freq);
+      else _idleThemeLabel('音频隧道', '待机预览');
+      break;
+    case 'galaxy':
+      if (!(canUseWebGLTheme('galaxy') && dGalaxyGL(freq))) dGalaxyIdle(freq);
+      else _idleThemeLabel('星系旋转', '待机预览');
+      break;
+  }
+}
+
 // ══════════════════════════════════════════
 // 1. 条形频谱
 // ══════════════════════════════════════════

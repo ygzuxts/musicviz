@@ -420,19 +420,24 @@ function render() {
     for (let i = 0; i < 512; i++)
       idle[i] = Math.floor((Math.sin(t + i * 0.14) * 0.38 + 0.42) * 120 + Math.sin(t * 0.6 + i * 0.28) * 35);
     switch (S.theme) {
-      case 'bars':      dBars(idle);        break;
-      case 'circle':    dCircle(idle);      break;
+      case 'bars':      dBarsIdle(idle);        break;
+      case 'circle':    dCircleIdle(idle);      break;
+      case 'waveform':  dWaveIdle();            break;
       case 'tunnel':
-        if (!(canUseWebGLTheme('tunnel') && dTunnelGL(idle))) dTunnel(idle);
+        if (!(canUseWebGLTheme('tunnel') && dTunnelGL(idle))) dTunnelIdle(idle);
+        else _idleThemeLabel('音频隧道', '待机预览');
         break;
       case 'galaxy':
-        if (!(canUseWebGLTheme('galaxy') && dGalaxyGL(idle))) dGalaxy(idle);
+        if (!(canUseWebGLTheme('galaxy') && dGalaxyGL(idle))) dGalaxyIdle(idle);
+        else _idleThemeLabel('星系旋转', '待机预览');
         break;
       case 'particles':
-        if (!(canUseWebGLTheme('particles') && dPartsGL(60))) dParts(60);
+        if (!(canUseWebGLTheme('particles') && dPartsGL(60))) dPartsIdle(60);
+        else _idleThemeLabel('粒子星云', '待机预览');
         break;
-      case 'auto':      dAuto(idle, 60);    break;
+      case 'auto':      dAutoIdle(idle, 60);    break;
     }
+    _idleAccentFrame();
   }
 
   // ── auto 模式：同步侧边栏高亮 + 进度条 ──

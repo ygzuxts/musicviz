@@ -29,13 +29,13 @@
       <span id="plt">PLAYLIST</span>
       <span id="plc"></span>
       <div style="flex:1"></div>
-      <button class="plb portrait-only" onclick="closePortraitPanels()" title="关闭">✕</button>
+      <button class="plb portrait-only" onclick="closePortraitPanels()" title="关闭"><img src="assets/icons/关闭.svg" class="icon"></button>
       <button id="plloop" class="plb" onclick="togLoop()" title="顺序播放">⇢</button>
-      <button id="plclr"  class="plb" onclick="clrPL()"  title="清空列表">🗑</button>
-      <button id="pla"    class="plb" onclick="document.getElementById('fi').click()" title="添加">＋</button>
+      <button id="plclr"  class="plb" onclick="clrPL()"  title="清空列表"><img src="assets/icons/删除.svg" class="icon"></button>
+      <button id="pla"    class="plb" onclick="document.getElementById('fi').click()" title="添加"><img src="assets/icons/添加.svg" class="icon"></button>
     </div>
     <div id="pll">
-      <div id="ple">🎵 暂无音频文件<br>点击「添加音乐」<br>或将音频拖拽到这里</div>
+      <div id="ple"><img src="assets/icons/音符.svg" class="ple-icon" alt="音符"> 暂无音频文件<br>点击「添加音乐」<br>或将音频拖拽到这里</div>
     </div>
     <div id="pld">将音频文件拖拽到这里</div>
   </div>
@@ -45,7 +45,18 @@
     <canvas id="mc"></canvas>
     <div id="bf"></div>
     <div id="do">
-      <div class="di">🎵</div>
+      <div class="di" aria-hidden="true">
+        <svg class="note-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="welcomeNoteGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="8%" stop-color="#00f5ff" />
+              <stop offset="42%" stop-color="#62bfff" />
+              <stop offset="100%" stop-color="#ff006e" />
+            </linearGradient>
+          </defs>
+          <path fill="url(#welcomeNoteGradient)" d="M17 3v10.55A4 4 0 1 0 19 17V7h3V3h-5zm-9 9.55A4 4 0 1 0 10 17V6h5V4H8z"/>
+        </svg>
+      </div>
       <div class="dt">音乐可视化工作台</div>
       <div class="ds">添加音频后开始播放 · 支持 MP3 WAV OGG</div>
     </div>
@@ -59,14 +70,14 @@
     <div class="ps">
       <div class="pst">可视化主题</div>
       <div class="tg">
-        <button class="tb on" data-theme="bars" onclick="setThm('bars',this)" title="经典频率条形图"><span class="tdot">📊</span>条形频谱</button>
-        <button class="tb" data-theme="circle" onclick="setThm('circle',this)" title="环形频谱扩散"><span class="tdot">🌀</span>圆形频谱</button>
-        <button class="tb" data-theme="waveform" onclick="setThm('waveform',this)" title="实时波形律动"><span class="tdot">〜</span>声波形态</button>
-        <button class="tb" data-theme="particles" onclick="setThm('particles',this)" title="粒子随音乐飞舞"><span class="tdot">✨</span>粒子星云</button>
-        <button class="tb" data-theme="tunnel" onclick="setThm('tunnel',this)" title="沉浸式音频隧道"><span class="tdot">🌌</span>音频隧道</button>
-        <button class="tb" data-theme="galaxy" onclick="setThm('galaxy',this)" title="星系随音乐旋转"><span class="tdot">💫</span>星系旋转</button>
+        <button class="tb on" data-theme="bars" onclick="setThm('bars',this)" title="经典频率条形图"><img src="assets/icons/条形频谱.svg" class="tdot icon">条形频谱</button>
+        <button class="tb" data-theme="circle" onclick="setThm('circle',this)" title="环形频谱扩散"><img src="assets/icons/圆形频谱.svg" class="tdot icon">圆形频谱</button>
+        <button class="tb" data-theme="waveform" onclick="setThm('waveform',this)" title="实时波形律动"><img src="assets/icons/声波.svg" class="tdot icon">声波形态</button>
+        <button class="tb" data-theme="particles" onclick="setThm('particles',this)" title="粒子随音乐飞舞"><img src="assets/icons/粒子星云.svg" class="tdot icon">粒子星云</button>
+        <button class="tb" data-theme="tunnel" onclick="setThm('tunnel',this)" title="沉浸式音频隧道"><img src="assets/icons/圆环.svg" class="tdot icon">音频隧道</button>
+        <button class="tb" data-theme="galaxy" onclick="setThm('galaxy',this)" title="星系随音乐旋转"><img src="assets/icons/星系旋转.svg" class="tdot icon">星系旋转</button>
         <button class="tb tb-auto" data-theme="auto" onclick="setThm('auto',this)" title="自动轮播所有主题 · 按 1-7 快捷切换">
-          <span class="tdot">🔄</span>综合循环
+          <img src="assets/icons/综合循环.svg" class="tdot icon">综合循环
           <div class="tb-auto-bar"><div id="tb-auto-prog"></div></div>
         </button>
       </div>
@@ -169,12 +180,12 @@
     <div class="ps">
       <div class="pst">背景特效</div>
       <div class="fg">
-        <button class="fb" data-fx="rain" onclick="togFx('rain',this)"><span class="fi">🌧</span>雨</button>
-        <button class="fb" data-fx="snow" onclick="togFx('snow',this)"><span class="fi">❄️</span>雪</button>
-        <button class="fb" data-fx="fog" onclick="togFx('fog',this)"><span class="fi">🌫</span>雾</button>
-        <button class="fb on" data-fx="stars" onclick="togFx('stars',this)"><span class="fi">⭐</span>星空</button>
-        <button class="fb" data-fx="lightning" onclick="togFx('lightning',this)"><span class="fi">⚡</span>闪电</button>
-        <button class="fb" data-fx="aurora" onclick="togFx('aurora',this)"><span class="fi">🌌</span>极光</button>
+        <button class="fb" data-fx="rain" onclick="togFx('rain',this)"><img src="assets/icons/雨.svg" class="icon">雨</button>
+        <button class="fb" data-fx="snow" onclick="togFx('snow',this)"><img src="assets/icons/暴雪.svg" class="icon">雪</button>
+        <button class="fb" data-fx="fog" onclick="togFx('fog',this)"><img src="assets/icons/雾.svg" class="icon">雾</button>
+        <button class="fb on" data-fx="stars" onclick="togFx('stars',this)"><img src="assets/icons/星空.svg" class="icon">星空</button>
+        <button class="fb" data-fx="lightning" onclick="togFx('lightning',this)"><img src="assets/icons/闪电.svg" class="icon">闪电</button>
+        <button class="fb" data-fx="aurora" onclick="togFx('aurora',this)"><img src="assets/icons/光效.svg" class="icon">极光</button>
       </div>
       <div id="fxp-stars" class="fxp-block">
         <div class="pr" style="margin-top:7px"><div class="pl"><span>星星密度</span><span id="vfx1">420</span></div><input type="range" class="sl" min="80" max="900" step="20" value="420" oninput="setV('fxParams.starsDensity',this,'vfx1',0)"></div>
@@ -209,14 +220,14 @@
       <div id="ivid" class="igvid" style="display:none;align-items:center;gap:5px;margin-bottom:6px;font-size:.56rem"></div>
       <div id="ibgvid" class="igvid" style="display:none;align-items:center;gap:5px;margin-bottom:6px;font-size:.56rem"></div>
       <div class="fg" style="margin-bottom:7px">
-        <button class="fb" id="igb" onclick="setIFx('gray',this)"><span class="fi">⬛</span>灰度</button>
-        <button class="fb" id="ihb" onclick="setIFx('halftone',this)"><span class="fi">⚙️</span>半调</button>
-        <button class="fb on" id="ilb" onclick="setIFx('glow',this)"><span class="fi">💡</span>光效</button>
+        <button class="fb" id="igb" onclick="setIFx('gray',this)"><img src="assets/icons/灰度.svg" class="icon">灰度</button>
+        <button class="fb" id="ihb" onclick="setIFx('halftone',this)"><img src="assets/icons/半调.svg" class="icon">半调</button>
+        <button class="fb on" id="ilb" onclick="setIFx('glow',this)"><img src="assets/icons/光效.svg" class="icon">光效</button>
       </div>
       <div class="fg" style="margin-bottom:7px;grid-template-columns:1fr 1fr 1fr">
-        <button class="fb on" id="isc" onclick="setISh('circle',this)"><span class="fi">⭕</span>圆形</button>
-        <button class="fb" id="isr" onclick="setISh('rect',this)"><span class="fi">🟦</span>矩形</button>
-        <button class="fb" id="isn" onclick="setISh('none',this)"><span class="fi">🚫</span>无图片</button>
+        <button class="fb on" id="isc" onclick="setISh('circle',this)"><img src="assets/icons/圆形.svg" class="icon">圆形</button>
+        <button class="fb" id="isr" onclick="setISh('rect',this)"><img src="assets/icons/矩形.svg" class="icon">矩形</button>
+        <button class="fb" id="isn" onclick="setISh('none',this)"><img src="assets/icons/无图片.svg" class="icon">无图片</button>
       </div>
       <div class="pr"><div class="pl"><span>图片大小</span><span id="vs7">0.22</span></div><input type="range" class="sl" min="0.08" max="0.55" step="0.01" value="0.22" oninput="setV('imgSize',this,'vs7',2)"></div>
       <div class="pr"><div class="pl"><span>律动强度</span><span id="vs6">.60</span></div><input type="range" class="sl" min="0" max="1.5" step=".05" value=".6" oninput="setV('imgBeat',this,'vs6')"></div>
@@ -241,24 +252,24 @@
     <div class="portraitQuickGroup">
       <div class="portraitQuickLabel">主题</div>
       <div class="portraitScroller">
-        <button class="tb portrait-chip on" data-theme="bars" onclick="setThm('bars',this)">条形频谱</button>
-        <button class="tb portrait-chip" data-theme="circle" onclick="setThm('circle',this)">圆形频谱</button>
-        <button class="tb portrait-chip" data-theme="waveform" onclick="setThm('waveform',this)">声波形态</button>
-        <button class="tb portrait-chip" data-theme="particles" onclick="setThm('particles',this)">粒子星云</button>
-        <button class="tb portrait-chip" data-theme="tunnel" onclick="setThm('tunnel',this)">音频隧道</button>
-        <button class="tb portrait-chip" data-theme="galaxy" onclick="setThm('galaxy',this)">星系旋转</button>
-        <button class="tb portrait-chip" data-theme="auto" onclick="setThm('auto',this)">综合循环</button>
+        <button class="tb portrait-chip on" data-theme="bars" onclick="setThm('bars',this)"><img src="assets/icons/条形频谱.svg" class="chip-icon icon">条形频谱</button>
+        <button class="tb portrait-chip" data-theme="circle" onclick="setThm('circle',this)"><img src="assets/icons/圆形频谱.svg" class="chip-icon icon">圆形频谱</button>
+        <button class="tb portrait-chip" data-theme="waveform" onclick="setThm('waveform',this)"><img src="assets/icons/声波.svg" class="chip-icon icon">声波形态</button>
+        <button class="tb portrait-chip" data-theme="particles" onclick="setThm('particles',this)"><img src="assets/icons/粒子星云.svg" class="chip-icon icon">粒子星云</button>
+        <button class="tb portrait-chip" data-theme="tunnel" onclick="setThm('tunnel',this)"><img src="assets/icons/圆环.svg" class="chip-icon icon">音频隧道</button>
+        <button class="tb portrait-chip" data-theme="galaxy" onclick="setThm('galaxy',this)"><img src="assets/icons/星系旋转.svg" class="chip-icon icon">星系旋转</button>
+        <button class="tb portrait-chip" data-theme="auto" onclick="setThm('auto',this)"><img src="assets/icons/综合循环.svg" class="chip-icon icon">综合循环</button>
       </div>
     </div>
     <div class="portraitQuickGroup">
       <div class="portraitQuickLabel">背景</div>
       <div class="portraitScroller">
-        <button class="fb portrait-chip" data-fx="rain" onclick="togFx('rain',this)">雨</button>
-        <button class="fb portrait-chip" data-fx="snow" onclick="togFx('snow',this)">雪</button>
-        <button class="fb portrait-chip" data-fx="fog" onclick="togFx('fog',this)">雾</button>
-        <button class="fb portrait-chip on" data-fx="stars" onclick="togFx('stars',this)">星空</button>
-        <button class="fb portrait-chip" data-fx="lightning" onclick="togFx('lightning',this)">闪电</button>
-        <button class="fb portrait-chip" data-fx="aurora" onclick="togFx('aurora',this)">极光</button>
+        <button class="fb portrait-chip" data-fx="rain" onclick="togFx('rain',this)"><img src="assets/icons/雨.svg" class="chip-icon icon">雨</button>
+        <button class="fb portrait-chip" data-fx="snow" onclick="togFx('snow',this)"><img src="assets/icons/暴雪.svg" class="chip-icon icon">雪</button>
+        <button class="fb portrait-chip" data-fx="fog" onclick="togFx('fog',this)"><img src="assets/icons/雾.svg" class="chip-icon icon">雾</button>
+        <button class="fb portrait-chip on" data-fx="stars" onclick="togFx('stars',this)"><img src="assets/icons/星空.svg" class="chip-icon icon">星空</button>
+        <button class="fb portrait-chip" data-fx="lightning" onclick="togFx('lightning',this)"><img src="assets/icons/闪电.svg" class="chip-icon icon">闪电</button>
+        <button class="fb portrait-chip" data-fx="aurora" onclick="togFx('aurora',this)"><img src="assets/icons/光效.svg" class="chip-icon icon">极光</button>
       </div>
     </div>
   </div>

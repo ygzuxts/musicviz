@@ -217,6 +217,13 @@ body[data-bg-theme="light"] .scanline {
 .pi.drag-over { border-top: 2px solid var(--accent); background: rgba(0,245,255,.06); }
 
 #ple { padding: 28px 12px; text-align: center; font-size: .72rem; color: var(--muted); line-height: 2.15; }
+.ple-icon{
+  width:1.1rem;
+  height:1.1rem;
+  vertical-align:-0.16rem;
+  margin-right:.3rem;
+  object-fit:contain;
+}
 #pld { padding: 11px; text-align: center; font-size: .64rem; color: var(--muted); border-top: 1px solid var(--border); letter-spacing: 1px; line-height: 1.9; transition: all .18s; }
 #pld.dov { background: rgba(0,245,255,.06); color: var(--accent); }
 
@@ -259,6 +266,14 @@ body[data-bg-theme="light"] .scanline {
 #do  { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; pointer-events: none; opacity: 1; transition: opacity .5s; }
 #do.h { opacity: 0; }
 .di  { font-size: 3.2rem; animation: fl 3s ease-in-out infinite; }
+.note-icon{
+  display:block;
+  width:8rem;
+  height:8rem;
+  filter:
+    drop-shadow(0 0 18px rgba(0,245,255,.24))
+    drop-shadow(0 0 26px rgba(255,0,110,.14));
+}
 @keyframes fl { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 .dt  { font-family: 'Orbitron', monospace; font-size: 1.28rem; color: var(--accent); letter-spacing: 4px; }
 .ds  { color: var(--muted); font-size: .82rem; letter-spacing: 2px; }
@@ -367,6 +382,9 @@ body.portrait-settings-open #portraitHdrSettingsBtn {
 }
 
 .portrait-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: max-content;
   white-space: nowrap;
   border-radius: 999px;
@@ -431,7 +449,7 @@ body.portrait-settings-open #portraitHdrSettingsBtn {
 }
 .tb:hover { border-color: var(--accent); background: rgba(0,245,255,.08); }
 .tb.on    { border-color: var(--accent); background: rgba(0,245,255,.15); color: var(--accent); }
-.tdot     { font-size: 1.08rem; display: block; margin-bottom: 2px; }
+.tdot     { display: block; margin: 0 auto 2px; }
 .tb-auto  { grid-column: 1 / -1; }
 
 .theme-switch {
@@ -569,7 +587,40 @@ body.portrait-settings-open #portraitHdrSettingsBtn {
 }
 .fb:hover { border-color: var(--accent3); background: rgba(170,255,0,.07); }
 .fb.on    { border-color: var(--accent3); color: var(--accent3); background: rgba(170,255,0,.1); }
-.fi { font-size: 1rem; display: block; }
+.fi { display: block; margin: 0 auto 2px; }
+
+.icon-mask {
+  display: inline-block;
+  width: 1.08rem;
+  height: 1.08rem;
+  background-color: currentColor;
+  -webkit-mask-image: var(--icon);
+  mask-image: var(--icon);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  pointer-events: none;
+  vertical-align: middle;
+}
+
+.tdot.icon-mask {
+  width: 1.08rem;
+  height: 1.08rem;
+}
+
+.fi.icon-mask {
+  width: 1rem;
+  height: 1rem;
+}
+
+.chip-icon {
+  width: .82rem;
+  height: .82rem;
+  margin-right: 5px;
+}
 
 /* 图片画廊缩略图 */
 .igth {
@@ -1408,4 +1459,74 @@ body[data-bg-theme="light"] #vs::-webkit-slider-runnable-track {
   body.portrait-ui.portrait-settings-open #portraitQuickBar {
     display: none !important;
   }
+}
+
+.icon{width:1.08rem;height:1.08rem;vertical-align:middle;}
+
+
+
+/* icon visibility fix */
+.icon{
+  width:1.08rem;
+  height:1.08rem;
+  vertical-align:middle;
+  object-fit:contain;
+  display:inline-block;
+}
+
+.fb .icon,
+.tb .icon,
+.hb .icon,
+.plb .icon,
+.rb .icon{
+  display:block;
+  margin:0 auto 2px;
+  filter: brightness(0) saturate(100%) invert(87%) sepia(14%) saturate(476%) hue-rotate(181deg) brightness(102%) contrast(101%);
+}
+
+.fb.on .icon,
+.tb.on .icon,
+.rb.on .icon{
+  filter: brightness(0) saturate(100%) invert(86%) sepia(62%) saturate(2878%) hue-rotate(145deg) brightness(106%) contrast(104%);
+}
+
+body[data-bg-theme="light"] .fb .icon,
+body[data-bg-theme="light"] .tb .icon,
+body[data-bg-theme="light"] .hb .icon,
+body[data-bg-theme="light"] .plb .icon,
+body[data-bg-theme="light"] .rb .icon{
+  filter: brightness(0) saturate(100%) invert(27%) sepia(16%) saturate(954%) hue-rotate(176deg) brightness(94%) contrast(91%);
+}
+
+body[data-bg-theme="light"] .fb.on .icon,
+body[data-bg-theme="light"] .tb.on .icon,
+body[data-bg-theme="light"] .rb.on .icon{
+  filter: brightness(0) saturate(100%) invert(34%) sepia(92%) saturate(1561%) hue-rotate(154deg) brightness(97%) contrast(102%);
+}
+
+
+/* v4: replace remaining mask icons with img icons */
+.tdot.icon{
+  width:1.08rem;
+  height:1.08rem;
+  display:block;
+  margin:0 auto 2px;
+}
+
+.chip-icon.icon{
+  width:.82rem;
+  height:.82rem;
+  display:inline-block;
+  margin-right:5px;
+  vertical-align:-2px;
+}
+
+.portrait-chip .chip-icon.icon{
+  flex-shrink:0;
+}
+
+.tb .tdot.icon,
+.fb .tdot.icon{
+  display:block;
+  margin:0 auto 2px;
 }
