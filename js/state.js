@@ -244,3 +244,116 @@ function fmt(s) {
   s = Math.max(0, s);
   return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
 }
+
+let _transferStatusToken = 0;
+let _transferStatusHideTimer = null;
+
+function _transferEls() {
+  return {
+    root: document.getElementById('transferStatus'),
+    label: document.getElementById('transferStatusLabel'),
+    percent: document.getElementById('transferStatusPercent'),
+    detail: document.getElementById('transferStatusDetail'),
+    fill: document.getElementById('transferStatusFill'),
+  };
+}
+
+function createTransferStatus(label, detail = '') {
+  const token = ++_transferStatusToken;
+  const els = _transferEls();
+  if (!els.root) {
+    return {
+      update() {},
+      done() {},
+      fail() {},
+      clear() {},
+    };
+  }
+
+  if (_transferStatusHideTimer) {
+    clearTimeout(_transferStatusHideTimer);
+    _transferStatusHideTimer = null;
+  }
+
+  const apply = (state = {}) => {
+    if (token !== _transferStatusToken) return;
+    const { root, label: labelEl, percent, detail: detailEl, fill } = _transferEls();
+    if (!root) return;
+    const progress = typeof state.progress === 'number' && Number.isFinite(state.progress)
+      ? Math.max(0, Math.min(1, state.progress))
+      : null;
+    root.hidden = false;
+    root.classList.add('show');
+    root.classList.toggle('done', state.kind === 'done');
+    root.classList.toggle('error', state.kind === 'error');
+    root.classList.toggle('indeterminate', progress === null);
+    labelEl.textContent = state.label || label;
+    detailEl.textContent = state.detail ?? detail;
+    percent.textContent = progress === null ? '处理中' : `${Math.round(progress * 100)}%`;
+    fill.style.width = `${Math.max(0, Math.round((progress ?? 0) * 100))}%`;
+  };
+
+  const hideLater = () => {
+    if (token !== _transferStatusToken) return;
+    _transferStatusHideTimer = setTimeout(() => {
+      if (token !== _transferStatusToken) return;
+      const { root, fill } = _transferEls();
+      if (!root) return;
+      root.classList.remove('show', 'done', 'error', 'indeterminate');
+      root.hidden = true;
+      fill.style.width = '0%';
+    }, 900);
+  };
+
+  apply({ label, detail, progress: null });
+
+  return {
+    update(next = {}) {
+      apply({ label, detail, ...next, kind: 'loading' });
+    },
+    done(next = {}) {
+      apply({ label, detail, ...next, progress: 1, kind: 'done' });
+      hideLater();
+    },
+    fail(next = {}) {
+      apply({ label, detail, ...next, kind: 'error' });
+      hideLater();
+    },
+    clear() {
+      if (token !== _transferStatusToken) return;
+      const { root, fill } = _transferEls();
+      if (!root) return;
+      root.classList.remove('show', 'done', 'error', 'indeterminate');
+      root.hidden = true;
+      fill.style.width = '0%';
+    },
+  };
+}
+
+async function fetchBinaryWithProgress(url, options = {}, onProgress = null) {
+  const res = await fetch(url, options);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const total = Number(res.headers.get('content-length')) || 0;
+  if (!res.body || typeof res.body.getReader !== 'function') {
+    const blob = await res.blob();
+    if (onProgress) onProgress(blob.size || total || 1, total || blob.size || 1);
+    return { blob, total: blob.size || total };
+  }
+
+  const reader = res.body.getReader();
+  const chunks = [];
+  let loaded = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    loaded += value.byteLength;
+    if (onProgress) onProgress(loaded, total);
+  }
+
+  const blob = new Blob(chunks, { type: res.headers.get('content-type') || 'application/octet-stream' });
+  if (onProgress) onProgress(loaded || blob.size, total || blob.size || loaded || 1);
+  return { blob, total: total || blob.size || loaded };
+}

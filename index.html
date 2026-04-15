@@ -287,6 +287,15 @@
 
 <div id="portraitScrim" onclick="closePortraitPanels()"></div>
 
+<div id="transferStatus" hidden aria-live="polite">
+  <div class="transfer-status-head">
+    <span id="transferStatusLabel">正在加载资源</span>
+    <span id="transferStatusPercent">0%</span>
+  </div>
+  <div class="transfer-status-bar"><div id="transferStatusFill"></div></div>
+  <div id="transferStatusDetail">请稍候…</div>
+</div>
+
 <!-- ═══ 底部播放器栏 ═══ -->
 <div id="bar">
   <div id="np">
@@ -316,7 +325,7 @@
 <script>
   (function () {
     const qs = new URLSearchParams(location.search);
-    const assetVersion = qs.get('v') || String(Date.now());
+    const assetVersion = qs.get('v') || '2026-04-15-portrait-opt';
     window.__assetVersion = assetVersion;
     window.__builtinAssets = {
       audio: [

@@ -261,7 +261,7 @@ async function _loadBuiltinAssetList(dir, fallbackKey, exts) {
 
   try {
     const ver = window.__assetVersion ? `?v=${window.__assetVersion}` : '';
-    const res = await fetch(`assets/${dir}/index.json${ver}`, { cache: 'no-store' });
+    const res = await fetch(`assets/${dir}/index.json${ver}`, { cache: 'force-cache' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const names = Array.isArray(data) ? data : Array.isArray(data.files) ? data.files : [];
@@ -406,7 +406,7 @@ function _findBgVideoIndex(name, builtin) {
 function _setBgVideoEntry(entry, idx) {
   if (!entry) return;
   bgVideoIdx = idx;
-  loadBgVideoSource(entry.src, entry.name);
+  loadBgVideoSource(entry);
   renderBgVideoGallery();
 }
 
@@ -421,6 +421,7 @@ function addBgVideo(file) {
   const entry = {
     name,
     src: URL.createObjectURL(file),
+    cachedSrc: '',
     builtin: false,
   };
   bgVideoList.push(entry);
@@ -440,6 +441,7 @@ function removeBgVideo(i, ev) {
 
   const wasCurrent = i === bgVideoIdx;
   URL.revokeObjectURL(entry.src);
+  if (entry.cachedSrc && entry.cachedSrc.startsWith('blob:')) URL.revokeObjectURL(entry.cachedSrc);
   bgVideoList.splice(i, 1);
 
   if (!bgVideoList.length) {
@@ -454,24 +456,80 @@ function removeBgVideo(i, ev) {
   }
 }
 
-function loadBgVideoSource(src, name) {
+let _bgVideoReqId = 0;
+
+async function loadBgVideoSource(entry) {
+  if (!entry) return;
+  const reqId = ++_bgVideoReqId;
+  const transfer = createTransferStatus('加载视频背景', `正在准备 ${entry.name}`);
+
   if (bgVidEl) { bgVidEl.pause(); bgVidEl.src = ''; }
+
+  let sourceUrl = entry.src;
+  try {
+    if (entry.builtin && !entry.cachedSrc) {
+      const { blob } = await fetchBinaryWithProgress(entry.src, { cache: 'force-cache' }, (loaded, total) => {
+        transfer.update({
+          detail: total > 0
+            ? `${entry.name} · 已下载 ${(loaded / 1024 / 1024).toFixed(1)} / ${(total / 1024 / 1024).toFixed(1)} MB`
+            : `${entry.name} · 正在下载视频数据`,
+          progress: total > 0 ? loaded / total : null,
+        });
+      });
+      entry.cachedSrc = URL.createObjectURL(blob);
+    }
+    sourceUrl = entry.cachedSrc || entry.src;
+  } catch (e) {
+    console.warn('背景视频下载失败:', entry.name, e);
+    if (reqId !== _bgVideoReqId) return;
+    bgVidOn = false;
+    transfer.fail({ detail: `${entry.name} · 视频下载失败` });
+    _syncBgVidStatus(`${entry.name} · 加载失败`);
+    renderBgVideoGallery();
+    return;
+  }
+
+  if (reqId !== _bgVideoReqId) return;
+
   bgVidEl = document.createElement('video');
   bgVidEl.muted = true;
-  bgVidEl.loop  = true;
+  bgVidEl.loop = true;
   bgVidEl.playsInline = true;
-  bgVidEl.src = src;
-  bgVidEl.play().catch(() => {});
-  bgVidEl.addEventListener('loadedmetadata', () => {
+  bgVidEl.preload = 'auto';
+  bgVidEl.src = sourceUrl;
+  transfer.update({ detail: `${entry.name} · 正在准备画面`, progress: 1 });
+  _syncBgVidStatus(`${entry.name} · 准备中`);
+
+  bgVidEl.addEventListener('loadeddata', () => {
+    if (reqId !== _bgVideoReqId) return;
+    transfer.update({ detail: `${entry.name} · 首帧已就绪`, progress: 1 });
+  }, { once: true });
+
+  bgVidEl.addEventListener('canplay', () => {
+    if (reqId !== _bgVideoReqId) return;
     bgVidOn = true;
     S.vidBg = true;
     const btn = document.getElementById('vidBgBtn');
     if (btn) btn.classList.add('on');
-    _syncBgVidStatus(name);
+    _syncBgVidStatus(entry.name);
+    renderBgVideoGallery();
+    transfer.done({ detail: `${entry.name} · 视频背景已启用` });
+    bgVidEl.play().catch(() => {});
   }, { once: true });
+
+  bgVidEl.addEventListener('error', () => {
+    if (reqId !== _bgVideoReqId) return;
+    bgVidOn = false;
+    transfer.fail({ detail: `${entry.name} · 视频加载失败` });
+    _syncBgVidStatus(`${entry.name} · 加载失败`);
+    renderBgVideoGallery();
+  }, { once: true });
+
+  bgVidEl.load();
 }
 
 function stopBgVideo() {
+  _bgVideoReqId++;
   if (bgVidEl) { bgVidEl.pause(); bgVidEl.src = ''; bgVidEl = null; }
   bgVidOn = false;
   S.vidBg = false;
@@ -602,6 +660,7 @@ async function renderBuiltinVideoLibrary() {
     bgVideoList.push({
       name,
       src: _assetUrl('videos', fileName),
+      cachedSrc: '',
       builtin: true,
     });
   });

@@ -151,6 +151,39 @@ function _trackDuration(track) {
   return 0;
 }
 
+async function _ensureTrackBuffer(track, onProgress = null) {
+  if (!track) return null;
+  if (track.buffer) return track.buffer;
+  if (track._loadPromise) return track._loadPromise;
+
+  track._loadPromise = (async () => {
+    wakeCtx();
+    if (!aCtx) throw new Error('AudioContext unavailable');
+
+    let buf;
+    if (track.file) {
+      if (onProgress) onProgress(track.file.size || 1, track.file.size || 1);
+      buf = await track.file.arrayBuffer();
+    } else if (track.src) {
+      const { blob } = await fetchBinaryWithProgress(track.src, { cache: 'force-cache' }, onProgress);
+      buf = await blob.arrayBuffer();
+    } else {
+      throw new Error('Track has no file or src');
+    }
+
+    const dec = await aCtx.decodeAudioData(buf);
+    track.buffer = dec;
+    track.duration = dec.duration;
+    return dec;
+  })();
+
+  try {
+    return await track._loadPromise;
+  } finally {
+    track._loadPromise = null;
+  }
+}
+
 function _stopBufferSource() {
   if (!src) return;
   src.onended = null;
@@ -173,7 +206,7 @@ async function _listBuiltinAudioFiles() {
 
   try {
     const url = `assets/audio/index.json${window.__assetVersion ? `?v=${window.__assetVersion}` : ''}`;
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetch(url, { cache: 'force-cache' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const names = Array.isArray(data)
@@ -230,16 +263,8 @@ async function loadBuiltinAudio() {
     const exists = plist.some(t => t.name === name);
     if (exists) continue;
     const url = `${encodeURI(`assets/audio/${fileName}`)}${window.__assetVersion ? `?v=${window.__assetVersion}` : ''}`;
-    try {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const buf = await res.arrayBuffer();
-      const dec = await aCtx.decodeAudioData(buf);
-      plist.push({ name, buffer: dec, duration: dec.duration });
-      added++;
-    } catch (e) {
-      console.warn('内置音频加载失败:', fileName, e);
-    }
+    plist.push({ name, src: url, duration: 0, builtin: true });
+    added++;
   }
 
   if (!added) return;
@@ -258,14 +283,47 @@ document.getElementById('fi').addEventListener('change', e => {
 // 3. 播放控制
 // ══════════════════════════════════════════
 
+let _playReqId = 0;
+
 /** 播放指定索引的曲目 */
-function playTk(i) {
+async function playTk(i) {
   if (i < 0 || i >= plist.length) return;
   wakeCtx();
+  const reqId = ++_playReqId;
   curI = i;
   _stopBufferSource();
 
   const t = plist[i];
+  const transfer = !t.buffer ? createTransferStatus('加载音频', `正在准备 ${t.name}`) : null;
+  document.getElementById('ns').textContent = `${t.name} · 加载中`;
+  document.getElementById('dt').textContent = fmt(_trackDuration(t));
+  updUI();
+  renderPL();
+
+  try {
+    await _ensureTrackBuffer(t, (loaded, total) => {
+      if (!transfer) return;
+      transfer.update({
+        detail: total > 0
+          ? `${t.name} · 已下载 ${(loaded / 1024 / 1024).toFixed(1)} / ${(total / 1024 / 1024).toFixed(1)} MB`
+          : `${t.name} · 正在下载音频数据`,
+        progress: total > 0 ? loaded / total : null,
+      });
+    });
+  } catch (e) {
+    console.warn('音频加载失败:', t.name, e);
+    if (reqId !== _playReqId) return;
+    playing = false;
+    document.getElementById('ns').textContent = `${t.name} · 加载失败`;
+    if (transfer) transfer.fail({ detail: `${t.name} · 加载失败` });
+    updUI();
+    renderPL();
+    return;
+  }
+
+  if (reqId !== _playReqId || curI !== i) return;
+  if (transfer) transfer.done({ detail: `${t.name} · 已完成，开始播放` });
+
   src = aCtx.createBufferSource();
   src.buffer = t.buffer;
   src.connect(anlz);
@@ -316,16 +374,46 @@ function togPlay() {
     pOff = _currentElapsed();
     _stopBufferSource();
     playing = false;
+    _playReqId++;
+    document.getElementById('ns').textContent = track.name;
   } else {
     if (curI === -1) { playTk(0); return; }
+    const resumeReqId = ++_playReqId;
+    const transfer = !track.buffer ? createTransferStatus('恢复播放', `正在准备 ${track.name}`) : null;
     _stopBufferSource();
-    src = aCtx.createBufferSource();
-    src.buffer = track.buffer;
-    src.connect(anlz);
-    src.start(0, pOff);
-    sTime   = aCtx.currentTime - pOff;
-    playing = true;
-    src.onended = () => { if (playing) autoNext(); };
+    document.getElementById('ns').textContent = `${track.name} · 加载中`;
+    updUI();
+    _ensureTrackBuffer(track, (loaded, total) => {
+      if (!transfer) return;
+      transfer.update({
+        detail: total > 0
+          ? `${track.name} · 已下载 ${(loaded / 1024 / 1024).toFixed(1)} / ${(total / 1024 / 1024).toFixed(1)} MB`
+          : `${track.name} · 正在下载音频数据`,
+        progress: total > 0 ? loaded / total : null,
+      });
+    }).then(() => {
+      if (resumeReqId !== _playReqId || curI !== plist.indexOf(track)) return;
+      src = aCtx.createBufferSource();
+      src.buffer = track.buffer;
+      src.connect(anlz);
+      src.start(0, pOff);
+      sTime   = aCtx.currentTime - pOff;
+      playing = true;
+      document.getElementById('ns').textContent = track.name;
+      document.getElementById('dt').textContent = fmt(_trackDuration(track));
+      if (transfer) transfer.done({ detail: `${track.name} · 已完成，继续播放` });
+      src.onended = () => { if (playing) autoNext(); };
+      updUI();
+      renderPL();
+    }).catch(e => {
+      console.warn('恢复播放失败:', track.name, e);
+      if (resumeReqId !== _playReqId) return;
+      playing = false;
+      document.getElementById('ns').textContent = `${track.name} · 加载失败`;
+      if (transfer) transfer.fail({ detail: `${track.name} · 加载失败` });
+      updUI();
+    });
+    return;
   }
   updUI();
 }
@@ -377,13 +465,41 @@ _seekSlider.addEventListener('change', function () {
   pOff = t;
 
   if (_skWasPlaying) {
-    src = aCtx.createBufferSource();
-    src.buffer = track.buffer;
-    src.connect(anlz);
-    src.start(0, t);
-    sTime   = aCtx.currentTime - t;
-    playing = true;
-    src.onended = () => { if (playing) autoNext(); };
+    const seekReqId = ++_playReqId;
+    const transfer = !track.buffer ? createTransferStatus('跳转播放', `正在准备 ${track.name}`) : null;
+    document.getElementById('ns').textContent = `${track.name} · 跳转中`;
+    updUI();
+    _ensureTrackBuffer(track, (loaded, total) => {
+      if (!transfer) return;
+      transfer.update({
+        detail: total > 0
+          ? `${track.name} · 已下载 ${(loaded / 1024 / 1024).toFixed(1)} / ${(total / 1024 / 1024).toFixed(1)} MB`
+          : `${track.name} · 正在下载音频数据`,
+        progress: total > 0 ? loaded / total : null,
+      });
+    }).then(() => {
+      if (seekReqId !== _playReqId || curI !== plist.indexOf(track)) return;
+      src = aCtx.createBufferSource();
+      src.buffer = track.buffer;
+      src.connect(anlz);
+      src.start(0, t);
+      sTime   = aCtx.currentTime - t;
+      playing = true;
+      document.getElementById('ns').textContent = track.name;
+      document.getElementById('dt').textContent = fmt(_trackDuration(track));
+      if (transfer) transfer.done({ detail: `${track.name} · 已完成，定位到 ${fmt(t)}` });
+      src.onended = () => { if (playing) autoNext(); };
+      updUI();
+      renderPL();
+    }).catch(e => {
+      console.warn('跳转后播放失败:', track.name, e);
+      if (seekReqId !== _playReqId) return;
+      playing = false;
+      document.getElementById('ns').textContent = `${track.name} · 加载失败`;
+      if (transfer) transfer.fail({ detail: `${track.name} · 加载失败` });
+      updUI();
+    });
+    return;
   } else {
     playing = false;
     const pct = dur > 0 ? Math.min((t / dur) * 100, 100) : 0;
