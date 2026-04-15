@@ -174,6 +174,19 @@ body[data-bg-theme="light"] .scanline {
 }
 .plb:hover  { border-color: var(--accent); color: var(--accent); }
 .plb-on     { border-color: var(--accent) !important; color: var(--accent) !important; }
+#plloop { border-color: transparent; }
+#plloop:hover { border-color: var(--accent); }
+#plloop .icon {
+  transition: opacity .16s ease, transform .18s ease, filter .18s ease;
+  transform-origin: center;
+}
+#plloop.loop-switch .icon {
+  animation: loopIconSwap .2s ease;
+}
+@keyframes loopIconSwap {
+  0% { opacity: .2; transform: scale(.84) rotate(-10deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
 #pll { flex: 1; overflow-y: auto; overflow-x: hidden; }
 #pll::-webkit-scrollbar       { width: 2px; }
 #pll::-webkit-scrollbar-thumb { background: var(--border); }

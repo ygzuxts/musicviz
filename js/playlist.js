@@ -36,9 +36,11 @@ function _syncLoopBtn() {
   const btn = document.getElementById('plloop');
   if (!btn) return;
   const ver = window.__assetVersion ? `?v=${window.__assetVersion}` : '';
+  btn.classList.remove('loop-switch');
+  void btn.offsetWidth;
   btn.innerHTML = `<img src="${_loopIcons[S.loopMode]}${ver}" class="icon" alt="${_loopTips[S.loopMode]}">`;
   btn.title       = _loopTips[S.loopMode];
-  btn.classList.toggle('plb-on', S.loopMode !== 'seq');
+  btn.classList.add('loop-switch');
 }
 
 // ══════════════════════════════════════════
