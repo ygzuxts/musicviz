@@ -383,7 +383,7 @@ body.portrait-ui.portrait-playlist-hint #portraitPlaylistBtn {
   background: var(--quick-bg);
   backdrop-filter: blur(14px);
   box-shadow: 0 10px 24px rgba(0,0,0,.2);
-  overflow: hidden;
+  overflow: visible;
   transition: transform .28s cubic-bezier(.22,1,.36,1), opacity .24s ease, box-shadow .28s ease;
 }
 
@@ -412,6 +412,7 @@ body.portrait-ui.portrait-playlist-hint #portraitPlaylistBtn {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
+  z-index: 6;
   padding: 5px 8px;
   border-radius: 9px;
   border: 1px solid rgba(0,245,255,.18);
