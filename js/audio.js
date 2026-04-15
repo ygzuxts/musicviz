@@ -36,6 +36,13 @@ function ensureCtx() {
   fArr = new Uint8Array(anlz.frequencyBinCount); // 频域（频谱）
 }
 
+function wakeCtx() {
+  ensureCtx();
+  if (aCtx && aCtx.state === 'suspended') {
+    aCtx.resume().catch(e => console.warn('AudioContext 恢复失败:', e));
+  }
+}
+
 function playRhythmClick(level = 1) {
   ensureCtx();
   if (!aCtx || !S.rhythmClick) return;
@@ -137,13 +144,64 @@ function _beatTempoConfidence(now) {
   return 0.9;
 }
 
+function _trackDuration(track) {
+  if (!track) return 0;
+  if (Number.isFinite(track.duration) && track.duration > 0) return track.duration;
+  if (track.buffer) return track.buffer.duration || 0;
+  return 0;
+}
+
+function _stopBufferSource() {
+  if (!src) return;
+  src.onended = null;
+  try { src.stop(); } catch (e) {}
+  src = null;
+}
+
+function _currentElapsed() {
+  return aCtx ? Math.max(0, aCtx.currentTime - sTime) : 0;
+}
+
+const _audioExtRe = /\.(mp3|wav|ogg|aac|m4a|flac|wma|opus|webm)$/i;
+
+async function _listBuiltinAudioFiles() {
+  if (location.protocol === 'file:') {
+    console.warn('内置音频清单需要通过本地服务器访问，当前为 file://');
+    alert('内置音乐需要通过本地服务器打开页面才能正常加载。请使用 http://127.0.0.1:4173/ 访问。');
+    return [];
+  }
+
+  try {
+    const url = `assets/audio/index.json${window.__assetVersion ? `?v=${window.__assetVersion}` : ''}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const names = Array.isArray(data)
+      ? data
+      : Array.isArray(data.files)
+        ? data.files
+        : [];
+    const cleaned = names
+      .map(name => typeof name === 'string' ? name.trim() : '')
+      .filter(name => name && !/^\./.test(name) && _audioExtRe.test(name));
+    if (cleaned.length) return [...new Set(cleaned)];
+  } catch (e) {
+    console.warn('读取内置音频清单失败，回退到页面清单模式:', e);
+  }
+
+  const fallback = (window.__builtinAssets && window.__builtinAssets.audio) || [];
+  const names = fallback.filter(name => !/^\./.test(name) && _audioExtRe.test(name));
+    if (names.length) return [...new Set(names)];
+  return [];
+}
+
 // ══════════════════════════════════════════
 // 2. 文件加载 & 解码
 // ══════════════════════════════════════════
 
 /** 批量加载音频文件，解码后加入播放列表 */
 async function loadFiles(files) {
-  ensureCtx();
+  wakeCtx();
   for (const f of files) {
     if (!f.type.startsWith('audio/') && !/\.(mp3|wav|ogg|aac|m4a|flac|wma|opus|webm)$/i.test(f.name)) continue;
     try {
@@ -159,6 +217,35 @@ async function loadFiles(files) {
   document.getElementById('do').classList.add('h'); // 隐藏空状态提示
 }
 
+async function loadBuiltinAudio() {
+  const names = await _listBuiltinAudioFiles();
+  if (!names.length) return;
+  wakeCtx();
+
+  let added = 0;
+  for (const fileName of names) {
+    const name = fileName.replace(/\.[^.]+$/, '');
+    const exists = plist.some(t => t.name === name);
+    if (exists) continue;
+    const url = `${encodeURI(`assets/audio/${fileName}`)}${window.__assetVersion ? `?v=${window.__assetVersion}` : ''}`;
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = await res.arrayBuffer();
+      const dec = await aCtx.decodeAudioData(buf);
+      plist.push({ name, buffer: dec, duration: dec.duration });
+      added++;
+    } catch (e) {
+      console.warn('内置音频加载失败:', fileName, e);
+    }
+  }
+
+  if (!added) return;
+  renderPL();
+  if (curI === -1 && plist.length > 0) playTk(0);
+  document.getElementById('do').classList.add('h');
+}
+
 // 顶部工具栏「添加音乐」按钮
 document.getElementById('fi').addEventListener('change', e => {
   loadFiles([...e.target.files]);
@@ -172,8 +259,9 @@ document.getElementById('fi').addEventListener('change', e => {
 /** 播放指定索引的曲目 */
 function playTk(i) {
   if (i < 0 || i >= plist.length) return;
+  wakeCtx();
   curI = i;
-  if (src) { src.onended = null; try { src.stop(); } catch (e) {} }
+  _stopBufferSource();
 
   const t = plist[i];
   src = aCtx.createBufferSource();
@@ -185,7 +273,7 @@ function playTk(i) {
   playing = true;
 
   document.getElementById('ns').textContent = t.name;
-  document.getElementById('dt').textContent = fmt(t.duration);
+  document.getElementById('dt').textContent = fmt(_trackDuration(t));
   src.onended = () => { if (playing) autoNext(); };
 
   updUI();
@@ -216,16 +304,21 @@ function autoNext() {
 
 /** 播放 / 暂停切换 */
 function togPlay() {
-  if (!aCtx || plist.length === 0) return;
+  if (plist.length === 0) return;
+  wakeCtx();
+  if (!aCtx) return;
+  const track = plist[curI];
+  if (!track) return;
+
   if (playing) {
-    pOff = aCtx.currentTime - sTime;
-    try { src.stop(); } catch (e) {}
+    pOff = _currentElapsed();
+    _stopBufferSource();
     playing = false;
   } else {
     if (curI === -1) { playTk(0); return; }
-    if (src) { try { src.stop(); } catch (e) {} }
+    _stopBufferSource();
     src = aCtx.createBufferSource();
-    src.buffer = plist[curI].buffer;
+    src.buffer = track.buffer;
     src.connect(anlz);
     src.start(0, pOff);
     sTime   = aCtx.currentTime - pOff;
@@ -238,7 +331,7 @@ function togPlay() {
 /** 上一首（3秒内重播当前曲，否则切上一首） */
 function prevTk() {
   if (src) src.onended = null;
-  const elapsed = aCtx ? aCtx.currentTime - sTime : 0;
+  const elapsed = _currentElapsed();
   if (elapsed > 3) playTk(curI);
   else if (curI > 0) playTk(curI - 1);
 }
@@ -264,7 +357,8 @@ _seekSlider.addEventListener('pointerdown', function () {
 // input：拖动时实时更新时间显示和填充色
 _seekSlider.addEventListener('input', function () {
   if (curI < 0 || !plist[curI]) return;
-  const t = (this.value / 100) * plist[curI].buffer.duration;
+  const dur = _trackDuration(plist[curI]);
+  const t = dur > 0 ? (this.value / 100) * dur : 0;
   this.style.setProperty('--sp', this.value + '%');
   document.getElementById('ct').textContent = fmt(t);
 });
@@ -272,13 +366,17 @@ _seekSlider.addEventListener('input', function () {
 // change：松手后执行实际跳转，恢复原来的播放/暂停状态
 _seekSlider.addEventListener('change', function () {
   _skActive = false;
+  wakeCtx();
   if (!aCtx || curI < 0) return;
-  const t = (this.value / 100) * plist[curI].buffer.duration;
-  if (src) { src.onended = null; try { src.stop(); } catch (e) {} }
+  const track = plist[curI];
+  const dur = _trackDuration(track);
+  const t = dur > 0 ? (this.value / 100) * dur : 0;
+  _stopBufferSource();
   pOff = t;
+
   if (_skWasPlaying) {
     src = aCtx.createBufferSource();
-    src.buffer = plist[curI].buffer;
+    src.buffer = track.buffer;
     src.connect(anlz);
     src.start(0, t);
     sTime   = aCtx.currentTime - t;
@@ -286,7 +384,7 @@ _seekSlider.addEventListener('change', function () {
     src.onended = () => { if (playing) autoNext(); };
   } else {
     playing = false;
-    const pct = Math.min((t / plist[curI].buffer.duration) * 100, 100);
+    const pct = dur > 0 ? Math.min((t / dur) * 100, 100) : 0;
     this.style.setProperty('--sp', pct + '%');
     document.getElementById('ct').textContent = fmt(t);
   }

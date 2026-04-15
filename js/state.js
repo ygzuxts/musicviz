@@ -63,8 +63,6 @@ let imgList = [];            // [{off, gray, pixels, img, thumbUrl, name}]
 let imgIdx  = 0;
 
 // ── 视频 ──
-let vidEl     = null;        // <video> 元素（图片互动层用）
-let vidActive = false;       // 是否使用视频帧（图片互动层）
 let bgVidEl   = null;        // 背景视频 <video> 元素（独立）
 let bgVidOn   = false;       // 背景视频是否激活
 

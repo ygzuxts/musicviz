@@ -48,7 +48,7 @@ function renderPL() {
   if (plc) plc.textContent = plist.length ? `${plist.length} 首` : '';
 
   if (plist.length === 0) {
-    el.innerHTML = '<div id="ple">🎵 播放列表为空<br>点击「添加音乐」<br>或拖拽到此处</div>';
+    el.innerHTML = '<div id="ple"><img src="assets/icons/音符.svg" class="ple-icon" alt="音符"> 播放列表为空<br>点击「添加音乐」或加载内置音乐<br>或拖拽到此处<br><button class="hb ple-load-btn" onclick="loadBuiltinAudio()">加载内置音乐</button></div>';
     return;
   }
 
@@ -222,12 +222,46 @@ function addImages(files) {
     const url = URL.createObjectURL(f);
     const img = new Image();
     img.onload = () => {
-      const entry = _buildImgEntry(img, url, f.name.replace(/\.[^.]+$/, ''));
-      imgList.push(entry);
-      // 如果是第一张，立即激活
-      if (imgList.length === 1) _activateImg(0);
-      renderImgGallery();
+      try {
+        const entry = _buildImgEntry(img, url, f.name.replace(/\.[^.]+$/, ''));
+        imgList.push(entry);
+        if (imgList.length === 1) _activateImg(0);
+        renderImgGallery();
+      } catch (e) {
+        console.warn('图片载入后处理失败:', f.name, e);
+      }
     };
+    img.onerror = () => console.warn('图片加载失败:', f.name);
+    img.src = url;
+  });
+}
+
+function _assetUrl(dir, fileName) {
+  const ver = window.__assetVersion ? `?v=${window.__assetVersion}` : '';
+  return `${encodeURI(`assets/${dir}/${fileName}`)}${ver}`;
+}
+
+function _displayName(fileName) {
+  return fileName.replace(/\.[^.]+$/, '');
+}
+
+function addBuiltinImages() {
+  const names = ((window.__builtinAssets && window.__builtinAssets.images) || []).filter(name => !/^\./.test(name));
+  if (!names.length) return;
+  names.forEach(fileName => {
+    const url = _assetUrl('images', fileName);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const entry = _buildImgEntry(img, url, _displayName(fileName));
+        imgList.push(entry);
+        if (imgList.length === 1) _activateImg(0);
+        renderImgGallery();
+      } catch (e) {
+        console.warn('内置图片后处理失败:', fileName, e);
+      }
+    };
+    img.onerror = () => console.warn('内置图片加载失败:', fileName);
     img.src = url;
   });
 }
@@ -239,24 +273,35 @@ function _buildImgEntry(img, thumbUrl, name) {
   off.height = img.height;
   off.getContext('2d').drawImage(img, 0, 0);
 
-  const gray = document.createElement('canvas');
-  gray.width  = img.width;
-  gray.height = img.height;
-  const gctx = gray.getContext('2d');
-  gctx.drawImage(img, 0, 0);
-  const id = gctx.getImageData(0, 0, img.width, img.height);
-  const d  = id.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const g = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
-    d[i] = d[i + 1] = d[i + 2] = g;
-  }
-  gctx.putImageData(id, 0, 0);
+  let gray = off;
+  let pixels = null;
 
-  const SW = 80, SH = Math.round(80 * img.height / img.width);
-  const sc = document.createElement('canvas');
-  sc.width = SW; sc.height = SH;
-  sc.getContext('2d').drawImage(img, 0, 0, SW, SH);
-  const pixels = { w: SW, h: SH, data: sc.getContext('2d').getImageData(0, 0, SW, SH).data };
+  try {
+    gray = document.createElement('canvas');
+    gray.width  = img.width;
+    gray.height = img.height;
+    const gctx = gray.getContext('2d');
+    gctx.drawImage(img, 0, 0);
+    const id = gctx.getImageData(0, 0, img.width, img.height);
+    const d  = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const g = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+      d[i] = d[i + 1] = d[i + 2] = g;
+    }
+    gctx.putImageData(id, 0, 0);
+  } catch (e) {
+    console.warn('灰度缓存生成失败:', name, e);
+  }
+
+  try {
+    const SW = 80, SH = Math.max(1, Math.round(80 * img.height / img.width));
+    const sc = document.createElement('canvas');
+    sc.width = SW; sc.height = SH;
+    sc.getContext('2d').drawImage(img, 0, 0, SW, SH);
+    pixels = { w: SW, h: SH, data: sc.getContext('2d').getImageData(0, 0, SW, SH).data };
+  } catch (e) {
+    console.warn('像素缓存生成失败:', name, e);
+  }
 
   return { img, off, gray, pixels, thumbUrl, name };
 }
@@ -264,7 +309,6 @@ function _buildImgEntry(img, thumbUrl, name) {
 /** 激活指定索引的图片 */
 function _activateImg(i) {
   imgIdx    = i;
-  vidActive = false;
   const e   = imgList[i];
   uImg      = e.img;
   imgOff    = e.off;
@@ -300,7 +344,7 @@ function renderImgGallery() {
   el.innerHTML = '';
   imgList.forEach((entry, i) => {
     const wrap = document.createElement('div');
-    wrap.className = 'igth' + (i === imgIdx && !vidActive ? ' on' : '');
+    wrap.className = 'igth' + (i === imgIdx ? ' on' : '');
     wrap.title = entry.name;
     wrap.innerHTML = `
       <img src="${entry.thumbUrl}" alt="${entry.name}">
@@ -314,72 +358,6 @@ function renderImgGallery() {
 }
 
 // ══════════════════════════════════════════
-// 视频导入
-// ══════════════════════════════════════════
-
-document.getElementById('vi2').addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f || !f.type.startsWith('video/')) return;
-  loadVideo(f);
-  e.target.value = '';
-});
-
-function loadVideo(file) {
-  // 停止旧视频
-  if (vidEl) { vidEl.pause(); vidEl.src = ''; }
-
-  vidEl = document.createElement('video');
-  vidEl.muted    = true;
-  vidEl.loop     = true;
-  vidEl.playsInline = true;
-  vidEl.src      = URL.createObjectURL(file);
-  vidEl.play().catch(() => {});
-
-  // 初始化 offscreen canvas（等视频元数据加载后）
-  vidEl.addEventListener('loadedmetadata', () => {
-    const scale = Math.min(1, 640 / vidEl.videoWidth);
-    const ow = Math.round(vidEl.videoWidth  * scale);
-    const oh = Math.round(vidEl.videoHeight * scale);
-    imgOff = document.createElement('canvas');
-    imgOff.width = ow; imgOff.height = oh;
-    imgGray   = null;
-    imgPixels = null;
-    uImg      = null;
-    vidActive = true;
-    _vidGrayC = null; _vidPixC = null;
-    renderImgGallery();
-    _syncVidStatus(file.name.replace(/\.[^.]+$/, ''));
-  }, { once: true });
-}
-
-function stopVideo() {
-  if (vidEl) { vidEl.pause(); vidEl.src = ''; vidEl = null; }
-  vidActive = false;
-  imgOff = null; imgGray = null; imgPixels = null;
-  // 恢复到图片列表中的当前图
-  if (imgList.length > 0) _activateImg(imgIdx);
-  _syncVidStatus(null);
-  renderImgGallery();
-}
-
-function _syncVidStatus(name) {
-  const el = document.getElementById('ivid');
-  if (!el) return;
-  if (name) {
-    el.style.display = 'flex';
-    el.innerHTML = `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🎬 ${name}</span>`
-      + `<button class="igdel" style="position:static;color:var(--muted)" onclick="stopVideo()">✕</button>`;
-    el.classList.add('on');
-  } else {
-    el.style.display = 'none';
-    el.classList.remove('on');
-  }
-}
-
-// 视频帧缓存 canvas
-let _vidGrayC = null, _vidPixC = null;
-
-// ══════════════════════════════════════════
 // 背景视频（独立于图片互动层）
 // ══════════════════════════════════════════
 
@@ -391,19 +369,23 @@ document.getElementById('bgvi').addEventListener('change', e => {
 });
 
 function loadBgVideo(file) {
+  loadBgVideoSource(URL.createObjectURL(file), file.name.replace(/\.[^.]+$/, ''));
+}
+
+function loadBgVideoSource(src, name) {
   if (bgVidEl) { bgVidEl.pause(); bgVidEl.src = ''; }
   bgVidEl = document.createElement('video');
   bgVidEl.muted = true;
   bgVidEl.loop  = true;
   bgVidEl.playsInline = true;
-  bgVidEl.src = URL.createObjectURL(file);
+  bgVidEl.src = src;
   bgVidEl.play().catch(() => {});
   bgVidEl.addEventListener('loadedmetadata', () => {
     bgVidOn = true;
     S.vidBg = true;
     const btn = document.getElementById('vidBgBtn');
     if (btn) btn.classList.add('on');
-    _syncBgVidStatus(file.name.replace(/\.[^.]+$/, ''));
+    _syncBgVidStatus(name);
   }, { once: true });
 }
 
@@ -430,39 +412,6 @@ function _syncBgVidStatus(name) {
   }
 }
 
-/** 每帧更新视频 offscreen canvas（在 render 循环中调用） */
-function updateVideoFrame() {
-  if (!vidEl || vidEl.readyState < 2 || !imgOff) return;
-  imgOff.getContext('2d').drawImage(vidEl, 0, 0, imgOff.width, imgOff.height);
-
-  // 灰度 & 像素数据每 4 帧更新一次
-  if (tk % 4 !== 0) return;
-  const ow = imgOff.width, oh = imgOff.height;
-
-  if (!_vidGrayC || _vidGrayC.width !== ow) {
-    _vidGrayC = document.createElement('canvas');
-    _vidGrayC.width = ow; _vidGrayC.height = oh;
-  }
-  const gctx = _vidGrayC.getContext('2d');
-  gctx.drawImage(imgOff, 0, 0);
-  const id = gctx.getImageData(0, 0, ow, oh);
-  const d  = id.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const g = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
-    d[i] = d[i + 1] = d[i + 2] = g;
-  }
-  gctx.putImageData(id, 0, 0);
-  imgGray = _vidGrayC;
-
-  const SW = 80, SH = Math.round(80 * oh / ow);
-  if (!_vidPixC || _vidPixC.height !== SH) {
-    _vidPixC = document.createElement('canvas');
-    _vidPixC.width = SW; _vidPixC.height = SH;
-  }
-  _vidPixC.getContext('2d').drawImage(imgOff, 0, 0, SW, SH);
-  imgPixels = { w: SW, h: SH, data: _vidPixC.getContext('2d').getImageData(0, 0, SW, SH).data };
-}
-
 // ══════════════════════════════════════════
 // 位置重置
 // ══════════════════════════════════════════
@@ -477,17 +426,20 @@ function _makeDefaultImg(drawFn, name) {
   const c = document.createElement('canvas');
   c.width = 400; c.height = 400;
   drawFn(c.getContext('2d'), 400);
-  const img = new Image();
-  img.onload = () => {
-    const entry = _buildImgEntry(img, c.toDataURL(), name);
+  try {
+    const url = c.toDataURL();
+    const entry = _buildImgEntry(c, url, name);
     imgList.push(entry);
     if (imgList.length === 1) _activateImg(0);
     renderImgGallery();
-  };
-  img.src = c.toDataURL();
+  } catch (e) {
+    console.warn('默认图片生成失败:', name, e);
+  }
 }
 
 function loadDefaultImages() {
+  addBuiltinImages();
+
   // 1. 青蓝渐变
   _makeDefaultImg((ctx, s) => {
     const g = ctx.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/1.4);
@@ -526,4 +478,28 @@ function loadDefaultImages() {
     }
     ctx.restore();
   }, '默认-紫粉');
+}
+
+function renderBuiltinVideoLibrary() {
+  const videos = ((window.__builtinAssets && window.__builtinAssets.videos) || []).filter(name => !/^\./.test(name));
+
+  const bgWrap = document.getElementById('builtinBgVideoWrap');
+  const bgList = document.getElementById('builtinBgVideoList');
+
+  if (bgWrap && bgList) {
+    bgList.innerHTML = '';
+    if (videos.length) {
+      bgWrap.style.display = '';
+      videos.forEach(fileName => {
+        const btn = document.createElement('button');
+        btn.className = 'hb builtin-media-btn';
+        btn.textContent = _displayName(fileName);
+        btn.title = `使用内置背景视频：${_displayName(fileName)}`;
+        btn.addEventListener('click', () => loadBgVideoSource(_assetUrl('videos', fileName), _displayName(fileName)));
+        bgList.appendChild(btn);
+      });
+    } else {
+      bgWrap.style.display = 'none';
+    }
+  }
 }

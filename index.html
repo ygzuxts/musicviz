@@ -35,7 +35,12 @@
       <button id="pla"    class="plb" onclick="document.getElementById('fi').click()" title="添加"><img src="assets/icons/添加.svg" class="icon"></button>
     </div>
     <div id="pll">
-      <div id="ple"><img src="assets/icons/音符.svg" class="ple-icon" alt="音符"> 暂无音频文件<br>点击「添加音乐」<br>或将音频拖拽到这里</div>
+      <div id="ple">
+        <img src="assets/icons/音符.svg" class="ple-icon" alt="音符"> 暂无音频文件<br>
+        点击「添加音乐」或加载内置音乐<br>
+        或将音频拖拽到这里<br>
+        <button class="hb ple-load-btn" onclick="loadBuiltinAudio()">加载内置音乐</button>
+      </div>
     </div>
     <div id="pld">将音频文件拖拽到这里</div>
   </div>
@@ -210,15 +215,16 @@
       <div class="pst">图片互动</div>
       <div style="display:flex;gap:5px;margin-bottom:7px">
         <button class="hb" style="flex:1;font-size:.58rem" onclick="document.getElementById('ii').click()">🖼 添加图片</button>
-        <button class="hb" style="flex:1;font-size:.58rem" onclick="document.getElementById('vi2').click()">🎬 导入视频</button>
         <button class="hb" style="flex:1;font-size:.58rem" id="vidBgBtn" onclick="document.getElementById('bgvi').click()">📺 视频背景</button>
       </div>
       <input type="file" id="ii" accept="image/*" multiple style="display:none">
-      <input type="file" id="vi2" accept="video/*" style="display:none">
       <input type="file" id="bgvi" accept="video/*" style="display:none">
       <div id="igal" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px;min-height:0"></div>
-      <div id="ivid" class="igvid" style="display:none;align-items:center;gap:5px;margin-bottom:6px;font-size:.56rem"></div>
       <div id="ibgvid" class="igvid" style="display:none;align-items:center;gap:5px;margin-bottom:6px;font-size:.56rem"></div>
+      <div id="builtinBgVideoWrap" class="builtin-media" style="display:none">
+        <div class="builtin-media-title">内置背景视频</div>
+        <div id="builtinBgVideoList" class="builtin-media-list"></div>
+      </div>
       <div class="fg" style="margin-bottom:7px">
         <button class="fb" id="igb" onclick="setIFx('gray',this)"><img src="assets/icons/灰度.svg" class="icon">灰度</button>
         <button class="fb" id="ihb" onclick="setIFx('halftone',this)"><img src="assets/icons/半调.svg" class="icon">半调</button>
@@ -308,6 +314,21 @@
     const qs = new URLSearchParams(location.search);
     const assetVersion = qs.get('v') || String(Date.now());
     window.__assetVersion = assetVersion;
+    window.__builtinAssets = {
+      audio: [
+        "[Non Copyrighted Music] @JoakimKarud - Great Days [R&B].mp3",
+        "[Non Copyrighted Music] @JoakimKarud - Great Days [R&B](1).mp3"
+      ],
+      images: [
+        "屏幕截图 2026-04-15 101515.png",
+        "pexels-brenda-holland-630596156-29270283.jpg",
+        "pexels-nathan-steele-274130124-32730210.jpg"
+      ],
+      videos: [
+        "15567127_3840_2160_24fps.mp4",
+        "15610623_1920_1080_30fps.mp4"
+      ]
+    };
     const head = document.head;
     const body = document.body;
 

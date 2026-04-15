@@ -224,6 +224,11 @@ body[data-bg-theme="light"] .scanline {
   margin-right:.3rem;
   object-fit:contain;
 }
+.ple-load-btn{
+  margin-top:10px;
+  font-size:.58rem;
+  padding:5px 10px;
+}
 #pld { padding: 11px; text-align: center; font-size: .64rem; color: var(--muted); border-top: 1px solid var(--border); letter-spacing: 1px; line-height: 1.9; transition: all .18s; }
 #pld.dov { background: rgba(0,245,255,.06); color: var(--accent); }
 
@@ -647,6 +652,32 @@ body.portrait-settings-open #portraitHdrSettingsBtn {
   padding: 4px 7px; color: var(--muted); font-size: .66rem;
 }
 .igvid.on { border-color: var(--accent2); color: var(--accent2); }
+
+.builtin-media {
+  margin-bottom: 7px;
+}
+
+.builtin-media-title {
+  margin: 2px 0 5px;
+  font-size: .56rem;
+  color: var(--muted);
+  letter-spacing: .8px;
+}
+
+.builtin-media-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.builtin-media-btn {
+  flex: 0 1 auto;
+  max-width: 100%;
+  padding: 4px 8px;
+  font-size: .54rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* 主题专属参数块 */
 .tp-block, .fxp-block {

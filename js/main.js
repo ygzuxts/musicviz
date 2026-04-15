@@ -25,7 +25,7 @@ function getStageCenter() {
 }
 
 CV.addEventListener('pointerdown', e => {
-  if (!imgOff && !vidActive) return;
+  if (!imgOff) return;
   const rect = CV.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
@@ -298,12 +298,13 @@ function render() {
     // 更新进度条（用户交互期间跳过，避免覆盖用户点击的位置）
     const elapsed = Math.max(0, aCtx.currentTime - sTime);
     if (!_skActive && curI >= 0 && plist[curI]) {
-      const dur = plist[curI].buffer.duration;
-      const pct = Math.min((elapsed / dur) * 100, 100);
+      const dur = _trackDuration(plist[curI]);
+      const now = Math.min(_currentElapsed(), dur || _currentElapsed());
+      const pct = dur > 0 ? Math.min((now / dur) * 100, 100) : 0;
       const sk  = document.getElementById('sk');
       sk.value  = pct;
       sk.style.setProperty('--sp', pct + '%');
-      document.getElementById('ct').textContent = fmt(elapsed);
+      document.getElementById('ct').textContent = fmt(now);
     }
   } else {
     isBeat     = false;
@@ -389,8 +390,7 @@ function render() {
   }
 
   // ── 图片互动层 ──
-  if (vidActive) updateVideoFrame();
-  if (uImg || vidActive) dImg(en);
+  if (uImg) dImg(en);
 
   // ── 天气特效层 ──
   dRain(en);
@@ -807,6 +807,7 @@ _syncLoopBtn(); // 同步循环模式按钮图标
 resize();     // 设置 Canvas 尺寸
 initParts();  // 初始化粒子池
 loadDefaultImages(); // 加载默认示例图片
+renderBuiltinVideoLibrary(); // 渲染内置视频资源入口
 _syncUIFromState(); // 恢复持久化设置
 // 初始化主题专属参数块（默认显示 bars）
 setThm(S.theme, document.querySelector(`.tb[data-theme="${S.theme}"]`) || document.querySelector('.tb'));
