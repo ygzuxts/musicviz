@@ -244,16 +244,20 @@ function dGalaxyIdle(freq) {
   _idleThemeLabel('星系旋转', '待机预览');
 }
 
-function dAutoIdle(freq, en) {
-  _autoTk++;
-  if (_autoTk > _AUTO_HOLD) {
-    _autoTk = 1;
-    _autoIdx = (_autoIdx + 1) % _autoThemes.length;
-  }
-  switch (_autoThemes[_autoIdx]) {
-    case 'bars':      dBarsIdle(freq);   break;
-    case 'circle':    dCircleIdle(freq); break;
-    case 'waveform':  dWaveIdle();       break;
+function _drawAutoIdleTheme(theme, freq, en, alpha = 1) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  switch (theme) {
+    case 'bars':
+      dBarsIdle(freq);
+      break;
+    case 'circle':
+      dCircleIdle(freq);
+      break;
+    case 'waveform':
+      dWaveIdle();
+      break;
     case 'particles':
       if (!(canUseWebGLTheme('particles') && dPartsGL(en))) dPartsIdle(en);
       else _idleThemeLabel('粒子星云', '待机预览');
@@ -266,6 +270,32 @@ function dAutoIdle(freq, en) {
       if (!(canUseWebGLTheme('galaxy') && dGalaxyGL(freq))) dGalaxyIdle(freq);
       else _idleThemeLabel('星系旋转', '待机预览');
       break;
+  }
+  ctx.restore();
+}
+
+function dAutoIdle(freq, en) {
+  _autoTk++;
+  if (_autoTk > _AUTO_HOLD) {
+    _autoTk = 1;
+    _autoIdx = (_autoIdx + 1) % _autoThemes.length;
+  }
+
+  const curTheme = _autoThemes[_autoIdx];
+  const nextTheme = _autoThemes[(_autoIdx + 1) % _autoThemes.length];
+  const fadeStart = _AUTO_HOLD - _AUTO_FADE;
+
+  if (_autoTk >= fadeStart) {
+    const t = (_autoTk - fadeStart) / _AUTO_FADE;
+    const mix = Math.min(1, Math.max(0, t));
+    _drawAutoIdleTheme(curTheme, freq, en, 1 - mix * 0.78);
+    ctx.save();
+    ctx.fillStyle = `rgba(0,0,0,${(0.08 + mix * 0.1).toFixed(3)})`;
+    ctx.fillRect(0, 0, CV.width, CV.height);
+    ctx.restore();
+    _drawAutoIdleTheme(nextTheme, freq, en, mix);
+  } else {
+    _drawAutoIdleTheme(curTheme, freq, en, 1);
   }
 }
 
