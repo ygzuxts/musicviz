@@ -23,19 +23,40 @@ function initStars() {
     sp: Math.random() * 0.025 + 0.006,
     col: Math.random() < 0.15, // 15% 彩色星
   }));
-  const nRain = Math.round((S.fxParams.rainSpeed || 1) * 340);
+  const rainLv = getRainLevel();
+  const nRain = Math.round(140 + rainLv * 120 + Math.max(0, rainLv - 2) * 260);
   rain = Array.from({ length: Math.max(50, nRain) }, mkR);
   const nSnow = S.fxParams.snowDensity || 170;
   snow = Array.from({ length: nSnow }, mkS);
 }
 
+function getRainLevel() {
+  return Math.max(0.2, S.fxParams.rainSpeed || 1);
+}
+
+function getRainProfile() {
+  const lv = getRainLevel();
+  const storm = Math.max(0, lv - 2);
+  return {
+    level: lv,
+    speedMul: 0.65 + lv * 0.55 + storm * 0.6,
+    drift: 1.0 + lv * 0.55 + storm * 0.5,
+    lenMul: 0.75 + lv * 0.22 + storm * 0.45,
+    widthMul: 0.9 + lv * 0.16 + storm * 0.4,
+    alphaMul: 0.72 + lv * 0.12 + storm * 0.2,
+    glow: storm > 0 ? 8 + storm * 4 : 6,
+  };
+}
+
 function mkR() {
+  const rainFx = getRainProfile();
   return {
     x: Math.random() * CV.width,
     y: Math.random() * CV.height,
-    len: 9  + Math.random() * 18,
-    sp:  7  + Math.random() * 7,
-    a:  0.25 + Math.random() * 0.4,
+    len: (14 + Math.random() * 20) * rainFx.lenMul,
+    sp:  (5.5 + Math.random() * 5.5) * rainFx.speedMul,
+    a:   Math.min(0.95, (0.32 + Math.random() * 0.28) * rainFx.alphaMul),
+    w:   (0.9 + Math.random() * 0.9) * rainFx.widthMul,
   };
 }
 
@@ -89,19 +110,23 @@ function dStars(en) {
 /** 雨：斜线雨滴，随能量加速 */
 function dRain(en) {
   if (!S.fx.rain) return;
-  ctx.strokeStyle = 'rgba(120,185,255,.32)';
-  ctx.lineWidth   = 1;
+  const rainFx = getRainProfile();
   const b = 1 + en / 255;
   rain.forEach(r => {
-    r.y += r.sp * S.speed * b * (S.fxParams.rainSpeed || 1);
-    r.x += 1.6;
+    r.y += r.sp * S.speed * b;
+    r.x += rainFx.drift;
     if (r.y > CV.height || r.x > CV.width) { Object.assign(r, mkR()); r.y = -20; r.x = Math.random() * CV.width; }
     ctx.globalAlpha = r.a;
+    ctx.strokeStyle = 'rgba(155,210,255,0.95)';
+    ctx.lineWidth   = r.w;
+    ctx.shadowBlur  = rainFx.glow;
+    ctx.shadowColor = 'rgba(120,185,255,0.45)';
     ctx.beginPath();
     ctx.moveTo(r.x, r.y);
-    ctx.lineTo(r.x + 3, r.y + r.len);
+    ctx.lineTo(r.x + 3.4 + rainFx.drift * 0.8, r.y + r.len);
     ctx.stroke();
   });
+  ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
 }
 
