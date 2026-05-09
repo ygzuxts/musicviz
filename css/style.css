@@ -2036,7 +2036,7 @@ body[data-bg-theme="light"] #vs::-webkit-slider-runnable-track {
 
 
 
-/* icon visibility fix */
+/* icon  */
 .icon{
   width:1.08rem;
   height:1.08rem;
@@ -2086,7 +2086,7 @@ body[data-bg-theme="light"] .rb.on .icon{
 }
 
 
-/* v4: replace remaining mask icons with img icons */
+/* 修复mask icon相关样式 */
 .tdot.icon{
   width:1.08rem;
   height:1.08rem;

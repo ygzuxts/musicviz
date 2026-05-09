@@ -83,17 +83,17 @@ window.addEventListener('resize', resize);
 // 键盘快捷键（1-7 切换主题）
 // ══════════════════════════════════════════
 
-const _thmKeys = ['bars','circle','waveform','particles','tunnel','galaxy','auto'];
-document.addEventListener('keydown', e => {
-  if (e.ctrlKey || e.altKey || e.metaKey) return;
-  const n = parseInt(e.key);
-  if (n >= 1 && n <= 7) {
-    const theme = _thmKeys[n - 1];
-    const btn = document.querySelector(`.tb[data-theme="${theme}"]`);
-    if (btn) setThm(theme, btn);
-  }
-  if (e.key === 'd' || e.key === 'D') _debugMode = !_debugMode;
-});
+// const _thmKeys = ['bars','circle','waveform','particles','tunnel','galaxy','auto'];
+// document.addEventListener('keydown', e => {
+//   if (e.ctrlKey || e.altKey || e.metaKey) return;
+//   const n = parseInt(e.key);
+//   if (n >= 1 && n <= 7) {
+//     const theme = _thmKeys[n - 1];
+//     const btn = document.querySelector(`.tb[data-theme="${theme}"]`);
+//     if (btn) setThm(theme, btn);
+//   }
+//   if (e.key === 'd' || e.key === 'D') _debugMode = !_debugMode;
+// });
 
 // ══════════════════════════════════════════
 // 调试覆盖层（按 D 键开关）
