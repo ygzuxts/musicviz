@@ -477,6 +477,10 @@ function togPlay() {
 /** 上一首（优先切到上一曲；第一首时回到开头） */
 function prevTk() {
   if (src) src.onended = null;
+  if (S.loopMode === 'one') {
+    if (curI >= 0) playTk(curI);
+    return;
+  }
   if (S.loopMode === 'shuffle') {
     if (_shufflePos > 0) playTk(_shuffleHist[_shufflePos - 1], { shuffleHistory: 'back' });
     else if (curI >= 0) playTk(curI, { shuffleHistory: 'keep' });
@@ -489,6 +493,10 @@ function prevTk() {
 /** 下一首 */
 function nextTk() {
   if (src) src.onended = null;
+  if (S.loopMode === 'one') {
+    if (curI >= 0) playTk(curI);
+    return;
+  }
   if (S.loopMode === 'shuffle') {
     _playShuffleNext();
     return;
