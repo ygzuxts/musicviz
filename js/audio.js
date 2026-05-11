@@ -284,12 +284,71 @@ document.getElementById('fi').addEventListener('change', e => {
 // ══════════════════════════════════════════
 
 let _playReqId = 0;
+let _shuffleHist = [];
+let _shufflePos = -1;
+
+function _setShuffleSeed(i) {
+  _shuffleHist = [i];
+  _shufflePos = 0;
+}
+
+function _syncShuffleHistory(i, mode = 'seed') {
+  switch (mode) {
+    case 'push':
+      if (_shufflePos < 0 || _shuffleHist[_shufflePos] == null) {
+        _setShuffleSeed(i);
+        return;
+      }
+      _shuffleHist = _shuffleHist.slice(0, _shufflePos + 1);
+      if (_shuffleHist[_shufflePos] !== i) {
+        _shuffleHist.push(i);
+        _shufflePos = _shuffleHist.length - 1;
+      }
+      return;
+    case 'back': {
+      const prevPos = _shuffleHist.lastIndexOf(i, _shufflePos - 1);
+      if (prevPos >= 0) _shufflePos = prevPos;
+      else _setShuffleSeed(i);
+      return;
+    }
+    case 'forward': {
+      const nextPos = _shuffleHist.indexOf(i, _shufflePos + 1);
+      if (nextPos >= 0) _shufflePos = nextPos;
+      else _setShuffleSeed(i);
+      return;
+    }
+    case 'keep':
+      if (_shufflePos < 0 || _shuffleHist[_shufflePos] == null) _setShuffleSeed(i);
+      return;
+    case 'seed':
+    default:
+      _setShuffleSeed(i);
+  }
+}
+
+function _pickShuffleIndex(exclude = -1) {
+  if (plist.length <= 1) return exclude >= 0 ? exclude : 0;
+  let next = Math.floor(Math.random() * plist.length);
+  while (next === exclude) next = Math.floor(Math.random() * plist.length);
+  return next;
+}
+
+function _playShuffleNext() {
+  if (plist.length === 0) return;
+  if (_shufflePos >= 0 && _shufflePos < _shuffleHist.length - 1) {
+    playTk(_shuffleHist[_shufflePos + 1], { shuffleHistory: 'forward' });
+    return;
+  }
+  playTk(_pickShuffleIndex(curI), { shuffleHistory: 'push' });
+}
 
 /** 播放指定索引的曲目 */
-async function playTk(i) {
+async function playTk(i, options = {}) {
   if (i < 0 || i >= plist.length) return;
   wakeCtx();
   const reqId = ++_playReqId;
+  if (S.loopMode === 'shuffle') _syncShuffleHistory(i, options.shuffleHistory || 'seed');
+  else _setShuffleSeed(i);
   curI = i;
   _stopBufferSource();
 
@@ -350,12 +409,9 @@ function autoNext() {
     case 'one':
       playTk(curI);
       break;
-    case 'shuffle': {
-      let next = Math.floor(Math.random() * plist.length);
-      if (plist.length > 1) while (next === curI) next = Math.floor(Math.random() * plist.length);
-      playTk(next);
+    case 'shuffle':
+      _playShuffleNext();
       break;
-    }
     default: // 'seq' 顺序播放到底停止
       if (curI < plist.length - 1) playTk(curI + 1);
       else { playing = false; updUI(); }
@@ -418,17 +474,25 @@ function togPlay() {
   updUI();
 }
 
-/** 上一首（3秒内重播当前曲，否则切上一首） */
+/** 上一首（优先切到上一曲；第一首时回到开头） */
 function prevTk() {
   if (src) src.onended = null;
-  const elapsed = _currentElapsed();
-  if (elapsed > 3) playTk(curI);
-  else if (curI > 0) playTk(curI - 1);
+  if (S.loopMode === 'shuffle') {
+    if (_shufflePos > 0) playTk(_shuffleHist[_shufflePos - 1], { shuffleHistory: 'back' });
+    else if (curI >= 0) playTk(curI, { shuffleHistory: 'keep' });
+    return;
+  }
+  if (curI > 0) playTk(curI - 1);
+  else if (curI === 0) playTk(curI);
 }
 
 /** 下一首 */
 function nextTk() {
   if (src) src.onended = null;
+  if (S.loopMode === 'shuffle') {
+    _playShuffleNext();
+    return;
+  }
   if (curI < plist.length - 1) playTk(curI + 1);
   else if (S.loopMode === 'loop' || S.loopMode === 'shuffle') playTk(0);
 }
